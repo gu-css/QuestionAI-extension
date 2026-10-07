@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "QuestionAI - Detector de Clickbait",
+  "version": "1.0.0",
+  "description": "Detecta e categoriza manchetes sensacionalistas e clickbaits em tempo real com Inteligência Artificial.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:7860/*",
+    "http://127.0.0.1:7860/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://*.hf.space/*",
+    "https://huggingface.co/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "QuestionAI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

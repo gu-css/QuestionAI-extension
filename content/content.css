@@ -1,0 +1,80 @@
+/* Clickbait Shield - Content Stylesheet */
+
+/* Highlight applied to headline element */
+.clickbait-detected {
+  position: relative !important;
+  border-left: 4px solid #e53e3e !important;
+  padding-left: 8px !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Badge displayed beside the headline */
+.clickbait-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-left: 8px !important;
+  padding: 2px 8px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  background-color: #fff5f5 !important;
+  color: #c53030 !important;
+  border: 1px solid #feb2b2 !important;
+  border-radius: 9999px !important;
+  cursor: help !important;
+  user-select: none !important;
+  position: relative !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Typology/Category chip inside badge */
+.clickbait-badge .bait-type {
+  font-weight: 700 !important;
+  color: #9b2c2c !important;
+}
+
+/* Tooltip container for extra inspection data */
+.clickbait-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1a202c !important;
+  color: #f7fafc !important;
+  text-align: left;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  z-index: 2147483647 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+}
+
+.clickbait-tooltip .tooltip-title {
+  display: block;
+  font-weight: 700;
+  color: #fc8181;
+  margin-bottom: 4px;
+}
+
+.clickbait-tooltip .tooltip-row {
+  display: block;
+  color: #e2e8f0;
+}
+
+.clickbait-badge:hover .clickbait-tooltip {
+  visibility: visible;
+  opacity: 1;
+}

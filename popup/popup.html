@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuestionAI</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo-wrapper">
+        <span class="icon">❓</span>
+        <h1>QuestionAI</h1>
+      </div>
+      <label class="switch" title="Ativar/Desativar detecção">
+        <input type="checkbox" id="toggle-enabled" checked>
+        <span class="slider round"></span>
+      </label>
+    </header>
+
+    <main class="popup-body">
+      <div class="stats-card">
+        <div class="stat-item">
+          <span class="stat-val" id="stat-scanned">0</span>
+          <span class="stat-label">Analisadas</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-val alert" id="stat-detected">0</span>
+          <span class="stat-label">Clickbaits</span>
+        </div>
+      </div>
+
+      <section class="config-section">
+        <label for="api-url" class="field-label">URL da API / Servidor:</label>
+        <div class="input-group">
+          <input type="text" id="api-url" placeholder="http://localhost:8000" spellcheck="false">
+        </div>
+
+        <div class="preset-buttons">
+          <button type="button" class="btn-preset" id="preset-local">Local (8000)</button>
+          <button type="button" class="btn-preset" id="preset-hf">Render Nuvem</button>
+        </div>
+
+        <div class="action-buttons">
+          <button type="button" class="btn-primary" id="btn-save">Salvar Configuração</button>
+          <button type="button" class="btn-secondary" id="btn-test">Testar API</button>
+        </div>
+      </section>
+
+      <div class="status-indicator" id="status-box">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Verificando status do servidor...</span>
+      </div>
+    </main>
+
+    <footer class="popup-footer">
+      <span>Versão 1.0.0 • Manifest V3</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
