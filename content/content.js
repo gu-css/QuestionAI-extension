@@ -155,8 +155,57 @@
     return true;
   }
 
+  // --- Image blur helpers ------------------------------------------------
+  function isMeaningfulImage(img) {
+    if (!img || img.tagName.toLowerCase() !== 'img') return false;
+    const src = img.currentSrc || img.src || '';
+    if (/data:image\/(svg|gif)/i.test(src)) return false;
+    if (/\.(svg|gif)(\?|#|$)/i.test(src)) return false;
+    if (img.width && img.width < 60) return false;
+    if (img.height && img.height < 40) return false;
+    if (/\b(avatar|icon|logo|emoji|badge|spinner|qr)\b/i.test(img.className || '')) return false;
+    return true;
+  }
+
+  function imageArea(img) {
+    const r = img.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return r.width * r.height;
+    const nw = img.naturalWidth || img.width || 0;
+    const nh = img.naturalHeight || img.height || 0;
+    return nw * nh;
+  }
+
+  function findMainImage(el) {
+    // Case 1: the headline link itself wraps the thumbnail (<a><img>...title</a>)
+    const selfImgs = Array.from(el.querySelectorAll('img')).filter(isMeaningfulImage);
+    if (selfImgs.length === 1) {
+      return { img: selfImgs[0], container: el };
+    }
+
+    // Case 2: walk up to the nearest card containing a meaningful image
+    let node = el.parentElement;
+    for (let depth = 0; depth < 4 && node && node !== document.body; depth++) {
+      const imgs = Array.from(node.querySelectorAll('img')).filter(isMeaningfulImage);
+      if (imgs.length === 1) {
+        return { img: imgs[0], container: node };
+      }
+      if (imgs.length > 1 && imgs.length <= 4) {
+        let best = imgs[0];
+        let bestArea = imageArea(best);
+        for (const img of imgs) {
+          const a = imageArea(img);
+          if (a > bestArea) { bestArea = a; best = img; }
+        }
+        return { img: best, container: node };
+      }
+      if (imgs.length > 4) return null; // container too broad (list/page)
+      node = node.parentElement;
+    }
+    return null;
+  }
+
   // Visual badge injection
-    function injectBadge(el, data) {
+  function injectBadge(el, data) {
     if (el.classList.contains('clickbait-detected')) {
       return;
     }
@@ -170,6 +219,19 @@
     el.dataset.baitType = baitType;
     el.dataset.prob = probPercent;
     el.dataset.conf = confPercent;
+
+    // Blur the main associated image so it reveals together with the headline
+    try {
+      const found = findMainImage(el);
+      if (found && found.img) {
+        found.img.classList.add('clickbait-image-blurred');
+        if (found.container) {
+          found.container.classList.add('clickbait-card');
+        }
+      }
+    } catch (e) {
+      // Image detection failure must not break headline injection
+    }
   }
 
   // Scan and process DOM headlines
@@ -305,6 +367,8 @@
       delete e.dataset.prob;
       delete e.dataset.conf;
     });
+    document.querySelectorAll('.clickbait-image-blurred').forEach((e) => e.classList.remove('clickbait-image-blurred'));
+    document.querySelectorAll('.clickbait-card').forEach((e) => e.classList.remove('clickbait-card'));
     document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
   }
 
