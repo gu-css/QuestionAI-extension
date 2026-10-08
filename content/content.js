@@ -246,7 +246,10 @@
   }
 
   // Debounced scan scheduler (300ms)
+  let isExtensionActive = false;
+
   function scheduleScan() {
+    if (!isExtensionActive) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(scanHeadlines, 300);
   }
@@ -254,7 +257,7 @@
   // Initialize MutationObserver for SPAs and infinite scroll feeds
   if (typeof MutationObserver !== 'undefined' && document.body) {
     const observer = new MutationObserver((mutations) => {
-      if (isInjectingBadges) return;
+      if (!isExtensionActive || isInjectingBadges) return;
       let hasRelevantMutation = false;
 
       for (const mutation of mutations) {
@@ -282,55 +285,57 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function initializeApp() {
-    // Initial scan on load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', scheduleScan);
-    } else {
-      scheduleScan();
-    }
-
-    // Listen for storage changes (toggle on/off)
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
-      chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'local') {
-          if (changes.enabled && changes.enabled.newValue === false) {
-            removeClickbaitEffects();
-          } else if (changes.enabled && changes.enabled.newValue === true) {
-            scheduleScan();
-          }
-          if (changes.disabledSites) {
-             const disabled = changes.disabledSites.newValue || [];
-             if (disabled.includes(window.location.hostname)) {
-                 removeClickbaitEffects();
-             } else {
-                 scheduleScan();
-             }
-          }
-        }
-      });
-    }
-  }
-
   function removeClickbaitEffects() {
     document.querySelectorAll('.clickbait-badge').forEach((b) => b.remove());
     document.querySelectorAll('.clickbait-detected').forEach((e) => e.classList.remove('clickbait-detected'));
     document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
   }
 
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(['disabledSites', 'enabled'], (data) => {
-      if (data.enabled === false) return; // Globally disabled
-      const disabledSites = data.disabledSites || [];
-      if (disabledSites.includes(window.location.hostname)) {
-        console.log('[QuestionAI] Desativado neste site: ' + window.location.hostname);
-        return;
+  function updateExtensionState(data) {
+    const disabledSites = data.disabledSites || [];
+    const isDisabledSite = disabledSites.includes(window.location.hostname);
+    const isGloballyDisabled = data.enabled === false;
+
+    if (isGloballyDisabled || isDisabledSite) {
+      isExtensionActive = false;
+      removeClickbaitEffects();
+    } else {
+      const wasInactive = !isExtensionActive;
+      isExtensionActive = true;
+      if (wasInactive) {
+        scheduleScan();
       }
-      initializeApp();
-    });
-  } else {
-    initializeApp(); // fallback if not extension context
+    }
   }
+
+  function initializeApp() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get(['disabledSites', 'enabled'], (data) => {
+        updateExtensionState(data);
+        
+        // Initial scan on load
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', scheduleScan);
+        } else {
+          scheduleScan();
+        }
+      });
+
+      // Listen for storage changes (toggle on/off)
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local') {
+          if (changes.enabled || changes.disabledSites) {
+            chrome.storage.local.get(['disabledSites', 'enabled'], updateExtensionState);
+          }
+        }
+      });
+    } else {
+      isExtensionActive = true;
+      scheduleScan();
+    }
+  }
+
+  initializeApp();
 
   // Intercept clicks on clickbait links
   function showWarningModal(href, archetype, linkEl) {
