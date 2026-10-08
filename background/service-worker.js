@@ -7,7 +7,8 @@
 const DEFAULT_CONFIG = {
   apiUrl: "https://clickbait-api.onrender.com", // Base URL to FastAPI
   enabled: true,
-  timeoutMs: 5000
+  timeoutMs: 5000,
+  model: "kmeans" // unsupervised categorizer: "kmeans" | "hdbscan"
 };
 
 // 1. Extension lifecycle initialization
@@ -21,6 +22,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
     if (current.enabled === undefined) initial.enabled = DEFAULT_CONFIG.enabled;
     if (current.stats === undefined) initial.stats = { totalScanned: 0, clickbaitDetected: 0 };
+    if (current.model === undefined) initial.model = DEFAULT_CONFIG.model;
 
     if (Object.keys(initial).length > 0) {
       await chrome.storage.local.set(initial);
@@ -49,8 +51,8 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 // 4. API communication helpers
-async function querySingleHeadline(headline, apiUrl, timeoutMs) {
-  const url = normalizePredictUrl(apiUrl, "/predict?headline=" + encodeURIComponent(headline));
+async function querySingleHeadline(headline, apiUrl, timeoutMs, model) {
+  const url = normalizePredictUrl(apiUrl, "/predict?headline=" + encodeURIComponent(headline) + "&model=" + encodeURIComponent(model || "kmeans"));
   const response = await fetchWithTimeout(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" }
@@ -62,12 +64,12 @@ async function querySingleHeadline(headline, apiUrl, timeoutMs) {
   return await response.json();
 }
 
-async function queryBatchHeadlines(headlines, apiUrl, timeoutMs) {
+async function queryBatchHeadlines(headlines, apiUrl, timeoutMs, model) {
   const url = normalizePredictUrl(apiUrl, "/predict_batch");
   const response = await fetchWithTimeout(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ headlines: headlines })
+    body: JSON.stringify({ headlines: headlines, model: model || "kmeans" })
   }, timeoutMs);
   
   if (!response.ok) {
@@ -100,11 +102,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   (async () => {
     try {
-      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache"]);
+      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache", "model"]);
       const isEnabled = settings.enabled !== false;
       const apiUrl = request.apiUrl || settings.apiUrl || DEFAULT_CONFIG.apiUrl;
       const threshold = settings.threshold !== undefined ? settings.threshold : 75;
       const timeoutMs = DEFAULT_CONFIG.timeoutMs;
+      const model = request.model || settings.model || "kmeans";
       
       let cache = settings.headlineCache || {};
 
@@ -117,6 +120,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             enabled: isEnabled,
             stats: settings.stats || { totalScanned: 0, clickbaitDetected: 0 },
             threshold: threshold,
+            model: model,
             cachedItems: Object.keys(cache).length
           }
         });
@@ -198,7 +202,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Query missing
         if (missingHeadlines.length > 0) {
-          const data = await queryBatchHeadlines(missingHeadlines, apiUrl, timeoutMs);
+          const data = await queryBatchHeadlines(missingHeadlines, apiUrl, timeoutMs, model);
           const results = data.results || [];
 
           results.forEach(r => {
@@ -283,7 +287,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
              result.is_clickbait = (result.probability * 100) >= threshold;
           }
         } else {
-          result = await querySingleHeadline(text, apiUrl, timeoutMs);
+          result = await querySingleHeadline(text, apiUrl, timeoutMs, model);
           if (result && result.probability !== undefined) {
              result.is_clickbait = (result.probability * 100) >= threshold;
           }

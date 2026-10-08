@@ -51,6 +51,14 @@
         </div>
 
         <div class="config-group">
+          <label for="model-select" class="field-label">Modelo de Categorização:</label>
+          <select id="model-select" style="width: 100%; margin-top: 8px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; background-color: var(--color-input-bg); color: var(--color-text); font-size: 13px;">
+            <option value="kmeans">K-Means (6 arquétipos)</option>
+            <option value="hdbscan">HDBSCAN (com incerteza)</option>
+          </select>
+        </div>
+
+        <div class="config-group">
           <label for="api-url" class="field-label">URL da API / Servidor:</label>
           <div class="input-group" style="margin-top: 8px; margin-bottom: 8px;">
             <input type="text" id="api-url" placeholder="https://clickbait-api.onrender.com" spellcheck="false" style="padding: 10px 12px;">

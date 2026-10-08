@@ -17,11 +17,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnClearCache = document.getElementById("btn-clear-cache");
   const statusDot = document.getElementById("status-dot");
   const statusText = document.getElementById("status-text");
+  const selectModel = document.getElementById("model-select");
 
   // Load current configuration from storage
-  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, threshold: 75, stats: { totalScanned: 0, clickbaitDetected: 0 }, headlineCache: {} };
+  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, threshold: 75, model: "kmeans", stats: { totalScanned: 0, clickbaitDetected: 0 }, headlineCache: {} };
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache"]);
+    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache", "model"]);
     
     // Auto-migrate old URLs (Hugging Face or sua-api)
     if (stored.apiUrl && (stored.apiUrl.includes("hf.space") || stored.apiUrl.includes("sua-api"))) {
@@ -39,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   toggleEnabled.checked = isEnabled;
   inputUrl.value = currentUrl;
+  if (selectModel) selectModel.value = settings.model || "kmeans";
   
   if (inputThreshold && thresholdVal) {
     inputThreshold.value = currentThreshold;
@@ -121,7 +123,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
         await chrome.storage.local.set({ 
           apiUrl: newUrl,
-          threshold: newThreshold
+          threshold: newThreshold,
+          model: selectModel ? selectModel.value : "kmeans"
         });
       }
       updateStatus(true, "Configuração salva com sucesso!");
