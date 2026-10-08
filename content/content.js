@@ -212,15 +212,20 @@
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
       candidates.forEach((headline, idx) => {
-        chrome.runtime.sendMessage(
-          {
-            action: 'predictClickbait',
-            headline: headline
-          },
-          (response) => {
-            if (!response || !response.success || !response.data) return;
+        try {
+          chrome.runtime.sendMessage(
+            {
+              action: 'predictClickbait',
+              headline: headline
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                // Silently handle "Extension context invalidated" or similar connection errors
+                return;
+              }
+              if (!response || !response.success || !response.data) return;
 
-            if (response.data.is_clickbait && candidateElements[idx]) {
+              if (response.data.is_clickbait && candidateElements[idx]) {
               isInjectingBadges = true;
               requestAnimationFrame(() => {
                 try {
@@ -232,6 +237,10 @@
             }
           }
         );
+        } catch (e) {
+          // Extension reloaded while page is open
+          return;
+        }
       });
     }
   }
