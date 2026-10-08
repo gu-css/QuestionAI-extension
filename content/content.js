@@ -47,7 +47,7 @@
     
     globalTooltip.style.visibility = 'hidden';
     globalTooltip.style.opacity = '0';
-    globalTooltip.style.display = 'block';
+    globalTooltip.style.display = 'flex';
 
     const rect = e.currentTarget.getBoundingClientRect();
     
