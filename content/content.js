@@ -211,37 +211,36 @@
     if (candidates.length === 0) return;
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      candidates.forEach((headline, idx) => {
-        try {
-          chrome.runtime.sendMessage(
-            {
-              action: 'predictClickbait',
-              headline: headline
-            },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                // Silently handle "Extension context invalidated" or similar connection errors
-                return;
-              }
-              if (!response || !response.success || !response.data) return;
-
-              if (response.data.is_clickbait && candidateElements[idx]) {
-              isInjectingBadges = true;
-              requestAnimationFrame(() => {
-                try {
-                  injectBadge(candidateElements[idx], response.data);
-                } finally {
-                  isInjectingBadges = false;
-                }
-              });
+      try {
+        chrome.runtime.sendMessage(
+          {
+            action: 'predictBatch',
+            headlines: candidates
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              return;
             }
+            if (!response || !response.success || !response.results) return;
+
+            isInjectingBadges = true;
+            requestAnimationFrame(() => {
+              try {
+                response.results.forEach((data, idx) => {
+                  if (data && data.is_clickbait && candidateElements[idx]) {
+                    injectBadge(candidateElements[idx], data);
+                  }
+                });
+              } finally {
+                isInjectingBadges = false;
+              }
+            });
           }
         );
-        } catch (e) {
-          // Extension reloaded while page is open
-          return;
-        }
-      });
+      } catch (e) {
+        // Extension reloaded while page is open
+        return;
+      }
     }
   }
 
