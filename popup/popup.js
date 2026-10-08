@@ -16,13 +16,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusText = document.getElementById("status-text");
 
   // Load current configuration from storage
-  let settings = { apiUrl: "http://localhost:8000", enabled: true, stats: { totalScanned: 0, clickbaitDetected: 0 } };
+  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, stats: { totalScanned: 0, clickbaitDetected: 0 } };
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats"]);
+    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats"]);
+    
+    // Auto-migrate old URLs (Hugging Face or sua-api)
+    if (stored.apiUrl && (stored.apiUrl.includes("hf.space") || stored.apiUrl.includes("sua-api"))) {
+      stored.apiUrl = "https://clickbait-api.onrender.com";
+      await chrome.storage.local.set({ apiUrl: stored.apiUrl });
+    }
+    
+    settings = { ...settings, ...stored };
   }
 
   const isEnabled = settings.enabled !== false;
-  const currentUrl = settings.apiUrl || "http://localhost:8000";
+  const currentUrl = settings.apiUrl || "https://clickbait-api.onrender.com";
   const stats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
 
   toggleEnabled.checked = isEnabled;
@@ -56,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnPresetHf.addEventListener("click", () => {
-    inputUrl.value = "https://sua-api.onrender.com";
+    inputUrl.value = "https://clickbait-api.onrender.com";
   });
 
   // Toggle activation

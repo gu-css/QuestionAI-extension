@@ -5,7 +5,7 @@
  */
 
 const DEFAULT_CONFIG = {
-  apiUrl: "http://localhost:8000", // Base URL to FastAPI
+  apiUrl: "https://clickbait-api.onrender.com", // Base URL to FastAPI
   enabled: true,
   timeoutMs: 5000
 };
@@ -16,7 +16,9 @@ chrome.runtime.onInstalled.addListener(async () => {
     const current = await chrome.storage.local.get(null);
     const initial = {};
 
-    if (current.apiUrl === undefined) initial.apiUrl = DEFAULT_CONFIG.apiUrl;
+    if (current.apiUrl === undefined || current.apiUrl.includes("hf.space") || current.apiUrl.includes("sua-api")) {
+      initial.apiUrl = DEFAULT_CONFIG.apiUrl;
+    }
     if (current.enabled === undefined) initial.enabled = DEFAULT_CONFIG.enabled;
     if (current.stats === undefined) initial.stats = { totalScanned: 0, clickbaitDetected: 0 };
 

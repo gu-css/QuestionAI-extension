@@ -6,6 +6,7 @@
 
 (function () {
   'use strict';
+  console.log('[QuestionAI] Content script loaded on ' + window.location.href);
 
   // Target headline selectors across general sites and major Brazilian news portals
   const HEADLINE_SELECTORS = [
@@ -97,7 +98,6 @@
     const badge = document.createElement('span');
     badge.className = 'clickbait-badge';
     badge.setAttribute('role', 'status');
-    badge.title = `Probabilidade: ${probPercent}% | Confiança: ${confPercent}%`;
 
     // Visual text structure matching contract: "⚠️ Clickbait: <span class="bait-type">{bait_type}</span>"
     badge.innerHTML = `⚠️ Clickbait: <span class="bait-type">${escapeHtml(baitType)}</span><span class="clickbait-tooltip"><span class="tooltip-title">🚨 Alerta de Clickbait</span><span class="tooltip-row">Categoria: ${escapeHtml(baitType)}</span><span class="tooltip-row">Probabilidade: ${probPercent}%</span><span class="tooltip-row">Confiança: ${confPercent}%</span></span>`;
@@ -107,6 +107,7 @@
 
   // Scan and process DOM headlines
   function scanHeadlines() {
+  console.log('[QuestionAI] Scanning headlines...');
     if (isInjectingBadges) return;
 
     let elements = [];
@@ -130,28 +131,28 @@
     if (candidates.length === 0) return;
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage(
-        {
-          action: 'predictBatch',
-          headlines: candidates
-        },
-        (response) => {
-          if (!response || !response.success || !response.results) return;
+      candidates.forEach((headline, idx) => {
+        chrome.runtime.sendMessage(
+          {
+            action: 'predictClickbait',
+            headline: headline
+          },
+          (response) => {
+            if (!response || !response.success || !response.data) return;
 
-          isInjectingBadges = true;
-          requestAnimationFrame(() => {
-            try {
-              response.results.forEach((item, idx) => {
-                if (item && item.is_clickbait && candidateElements[idx]) {
-                  injectBadge(candidateElements[idx], item);
+            if (response.data.is_clickbait && candidateElements[idx]) {
+              isInjectingBadges = true;
+              requestAnimationFrame(() => {
+                try {
+                  injectBadge(candidateElements[idx], response.data);
+                } finally {
+                  isInjectingBadges = false;
                 }
               });
-            } finally {
-              isInjectingBadges = false;
             }
-          });
-        }
-      );
+          }
+        );
+      });
     }
   }
 
