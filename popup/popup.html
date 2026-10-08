@@ -37,8 +37,14 @@
 
       
       <section class="config-section" id="config-section" style="display: none;">
+      
+        <label for="threshold-slider" class="field-label">Sensibilidade de Detecção:</label>
+        <div class="input-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="range" id="threshold-slider" min="0" max="100" value="75" style="flex: 1; padding: 0; background: transparent; border: none; height: 18px; cursor: pointer;">
+          <span id="threshold-val" style="font-weight: 600; width: 32px; text-align: right; font-size: 11px;">75%</span>
+        </div>
 
-        <label for="api-url" class="field-label">URL da API / Servidor:</label>
+        <label for="api-url" class="field-label" style="margin-top: 4px;">URL da API / Servidor:</label>
         <div class="input-group">
           <input type="text" id="api-url" placeholder="https://clickbait-api.onrender.com" spellcheck="false">
         </div>

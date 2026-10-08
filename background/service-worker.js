@@ -100,9 +100,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   (async () => {
     try {
-      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats"]);
+      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold"]);
       const isEnabled = settings.enabled !== false;
       const apiUrl = request.apiUrl || settings.apiUrl || DEFAULT_CONFIG.apiUrl;
+      const threshold = settings.threshold !== undefined ? settings.threshold : 75;
       const timeoutMs = DEFAULT_CONFIG.timeoutMs;
 
       // getConfig
@@ -112,7 +113,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           config: {
             apiUrl: settings.apiUrl || DEFAULT_CONFIG.apiUrl,
             enabled: isEnabled,
-            stats: settings.stats || { totalScanned: 0, clickbaitDetected: 0 }
+            stats: settings.stats || { totalScanned: 0, clickbaitDetected: 0 },
+            threshold: threshold
           }
         });
         return;
@@ -142,6 +144,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const data = await queryBatchHeadlines(headlines, apiUrl, timeoutMs);
         const results = data.results || [];
 
+        // Apply threshold override
+        results.forEach(r => {
+           if (r && r.probability !== undefined) {
+               r.is_clickbait = (r.probability * 100) >= threshold;
+           }
+        });
+
         // Update stats in storage
         const detectedCount = results.filter((r) => r && r.is_clickbait).length;
         const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
@@ -170,6 +179,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         const result = await querySingleHeadline(text, apiUrl, timeoutMs);
+        
+        // Apply threshold override
+        if (result && result.probability !== undefined) {
+           result.is_clickbait = (result.probability * 100) >= threshold;
+        }
+
         const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
         
         await chrome.storage.local.set({

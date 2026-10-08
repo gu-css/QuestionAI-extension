@@ -6,6 +6,8 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const toggleEnabled = document.getElementById("toggle-enabled");
   const inputUrl = document.getElementById("api-url");
+  const inputThreshold = document.getElementById("threshold-slider");
+  const thresholdVal = document.getElementById("threshold-val");
   const btnSave = document.getElementById("btn-save");
   const btnTest = document.getElementById("btn-test");
   const btnPresetLocal = document.getElementById("preset-local");
@@ -16,9 +18,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusText = document.getElementById("status-text");
 
   // Load current configuration from storage
-  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, stats: { totalScanned: 0, clickbaitDetected: 0 } };
+  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, threshold: 75, stats: { totalScanned: 0, clickbaitDetected: 0 } };
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats"]);
+    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold"]);
     
     // Auto-migrate old URLs (Hugging Face or sua-api)
     if (stored.apiUrl && (stored.apiUrl.includes("hf.space") || stored.apiUrl.includes("sua-api"))) {
@@ -31,10 +33,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const isEnabled = settings.enabled !== false;
   const currentUrl = settings.apiUrl || "https://clickbait-api.onrender.com";
+  const currentThreshold = settings.threshold !== undefined ? settings.threshold : 75;
   const stats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
 
   toggleEnabled.checked = isEnabled;
   inputUrl.value = currentUrl;
+  
+  if (inputThreshold && thresholdVal) {
+    inputThreshold.value = currentThreshold;
+    thresholdVal.textContent = currentThreshold + "%";
+    
+    inputThreshold.addEventListener("input", (e) => {
+      thresholdVal.textContent = e.target.value + "%";
+    });
+  }
+
   statScanned.textContent = stats.totalScanned || 0;
   statDetected.textContent = stats.clickbaitDetected || 0;
 
@@ -77,8 +90,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Save Settings
   btnSave.addEventListener("click", async () => {
     const newUrl = inputUrl.value.trim() || "http://localhost:8000";
+    const newThreshold = parseInt(inputThreshold.value, 10);
+    
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      await chrome.storage.local.set({ apiUrl: newUrl });
+      await chrome.storage.local.set({ 
+        apiUrl: newUrl,
+        threshold: newThreshold
+      });
     }
     updateStatus(true, "Configuração salva com sucesso!");
     setTimeout(() => checkHealth(newUrl), 800);
