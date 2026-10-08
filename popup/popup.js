@@ -141,6 +141,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local" && changes.stats) {
+        const newStats = changes.stats.newValue;
+        if (newStats) {
+          statScanned.textContent = newStats.totalScanned || 0;
+          statDetected.textContent = newStats.clickbaitDetected || 0;
+        }
+      }
+    });
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -150,10 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleBtn.addEventListener('click', () => {
       if (configSec.style.display === 'none') {
         configSec.style.display = 'block';
-        toggleBtn.textContent = '⚙️ Ocultar Configurações';
+        toggleBtn.textContent = '❌ Fechar Config';
       } else {
         configSec.style.display = 'none';
-        toggleBtn.textContent = '⚙️ Configurações Avançadas';
+        toggleBtn.textContent = '⚙️ Config';
       }
     });
   }

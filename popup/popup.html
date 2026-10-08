@@ -36,9 +36,6 @@
       </div>
 
       
-      <button type="button" class="btn-settings-toggle" id="btn-settings-toggle">
-        ⚙️ Configurações Avançadas
-      </button>
       <section class="config-section" id="config-section" style="display: none;">
 
         <label for="api-url" class="field-label">URL da API / Servidor:</label>
@@ -63,8 +60,9 @@
       </div>
     </main>
 
-    <footer class="popup-footer">
-      <span>Versão 1.0.0 • Manifest V3</span>
+    <footer class="popup-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span>Versão 1.0.0</span>
+      <button type="button" id="btn-settings-toggle" style="background: none; border: none; color: inherit; font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px;" title="Configurações Avançadas">⚙️ Config</button>
     </footer>
   </div>
 
