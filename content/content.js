@@ -24,7 +24,11 @@
   let globalTooltip = null;
 
   function createGlobalTooltip() {
-    if (document.getElementById('questionai-global-tooltip')) return;
+    let existing = document.getElementById('questionai-global-tooltip');
+    if (existing) {
+      globalTooltip = existing;
+      return;
+    }
     globalTooltip = document.createElement('div');
     globalTooltip.id = 'questionai-global-tooltip';
     globalTooltip.className = 'clickbait-tooltip-global';
