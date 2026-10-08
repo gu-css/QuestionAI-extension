@@ -63,9 +63,9 @@
       
       tooltip.innerHTML = `
         <strong style="all: initial !important; display: block !important; color: #fc8181 !important; font-weight: 700 !important; margin-bottom: 6px !important; font-family: inherit !important; font-size: 13px !important;">🚨 Alerta de Clickbait</strong>
-        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Categoria: ${escapeHtml(baitType)}</span>
-        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Probabilidade: ${prob}%</span>
-        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Confiança: ${conf}%</span>
+        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important; line-height: 1.4 !important;">
+          A IA tem <strong style="all: initial !important; color: #fff !important; font-weight: 600 !important; font-family: inherit !important; font-size: 12px !important;">${prob}% de certeza</strong> que o título usa a tática de <strong style="all: initial !important; color: #fff !important; font-weight: 600 !important; font-family: inherit !important; font-size: 12px !important;">${escapeHtml(baitType)}</strong>.
+        </span>
       `;
       
       tooltip.style.setProperty('display', 'flex', 'important');
