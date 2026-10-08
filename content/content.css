@@ -3,7 +3,7 @@
 /* Highlight applied to headline element */
 .clickbait-detected {
   position: relative !important;
-  border-left: 4px solid #e53e3e !important;
+  border-left: 4px solid #D500F5 !important;
   padding-left: 8px !important;
   transition: background-color 0.2s ease;
 }
@@ -26,9 +26,9 @@
   letter-spacing: normal !important;
   white-space: normal !important;
   vertical-align: middle !important;
-  background-color: #fff5f5 !important;
-  color: #c53030 !important;
-  border: 1px solid #feb2b2 !important;
+  background-color: #F5F3F8 !important;
+  color: #202020 !important;
+  border: 1px solid #D500F5 !important;
   border-radius: 8px !important;
   cursor: help !important;
   user-select: none !important;
@@ -41,7 +41,7 @@
 /* Typology/Category chip inside badge */
 .clickbait-badge .bait-type {
   font-weight: 700 !important;
-  color: #9b2c2c !important;
+  color: #8200D6 !important;
 }
 
 /* QuestionAI Warning Modal Overlay */
@@ -85,7 +85,7 @@
 .questionai-modal-content h2 {
   font-size: 24px !important;
   font-weight: 800 !important;
-  color: #b91c1c !important;
+  color: #8200D6 !important;
   margin: 0 0 16px 0 !important;
   line-height: 1.2 !important;
 }
@@ -155,10 +155,10 @@
 }
 
 .questionai-actions .btn-continue {
-  background: #fee2e2 !important;
-  color: #b91c1c !important;
+  background: #8200D6 !important;
+  color: #8200D6 !important;
 }
 .questionai-actions .btn-continue:hover {
-  background: #fca5a5 !important;
-  color: #991b1b !important;
+  background: #D500F5 !important;
+  color: #FFFFFF !important;
 }

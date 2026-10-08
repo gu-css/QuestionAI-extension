@@ -62,7 +62,7 @@
       const conf = badge.dataset.conf;
       
       tooltip.innerHTML = `
-        <strong style="all: initial !important; display: block !important; color: #fc8181 !important; font-weight: 700 !important; margin-bottom: 6px !important; font-family: inherit !important; font-size: 13px !important;">🚨 Alerta de Clickbait</strong>
+        <strong style="all: initial !important; display: block !important; color: #D500F5 !important; font-weight: 700 !important; margin-bottom: 6px !important; font-family: inherit !important; font-size: 13px !important;">🚨 Alerta de Clickbait</strong>
         <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important; line-height: 1.4 !important;">
           A IA tem <strong style="all: initial !important; color: #fff !important; font-weight: 600 !important; font-family: inherit !important; font-size: 12px !important;">${prob}% de certeza</strong> que o título usa a tática de <strong style="all: initial !important; color: #fff !important; font-weight: 600 !important; font-family: inherit !important; font-size: 12px !important;">${escapeHtml(baitType)}</strong>.
         </span>
@@ -305,7 +305,7 @@
     
     modal.innerHTML = `
       <div class="questionai-modal-content">
-        <div class="questionai-icon">🚨</div>
+        <div class="questionai-icon" style="color: #8200D6; font-size: 54px;">⛔</div>
         <h2>Alerta de Clickbait!</h2>
         <p>Você está prestes a abrir uma notícia manipulativa classificada como <strong>${escapeHtml(archetype)}</strong>.</p>
         

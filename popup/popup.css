@@ -9,8 +9,8 @@
 body {
   width: 320px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f7fafc;
-  color: #2d3748;
+  background-color: #F5F3F8;
+  color: #202020;
   font-size: 13px;
 }
 
@@ -41,7 +41,7 @@ body {
 .logo-wrapper h1 {
   font-size: 15px;
   font-weight: 700;
-  color: #1a202c;
+  color: #202020;
 }
 
 /* Switch toggle */
@@ -65,7 +65,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e0;
+  background-color: #E2D8EA;
   transition: 0.3s;
   border-radius: 20px;
 }
@@ -83,7 +83,7 @@ body {
 }
 
 input:checked + .slider {
-  background-color: #48bb78;
+  background-color: #8200D6;
 }
 
 input:checked + .slider:before {
@@ -115,11 +115,11 @@ input:checked + .slider:before {
 .stat-val {
   font-size: 18px;
   font-weight: 700;
-  color: #2b6cb0;
+  color: #6B00B3;
 }
 
 .stat-val.alert {
-  color: #e53e3e;
+  color: #D500F5;
 }
 
 .stat-label {
@@ -148,14 +148,14 @@ input:checked + .slider:before {
   width: 100%;
   padding: 6px 10px;
   font-size: 12px;
-  border: 1px solid #cbd5e0;
+  border: 1px solid #E2D8EA;
   border-radius: 6px;
   background-color: #ffffff;
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #3182ce;
+  border-color: #8200D6;
   box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
 }
 
@@ -190,7 +190,7 @@ input:checked + .slider:before {
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
-  background-color: #3182ce;
+  background-color: #8200D6;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -198,7 +198,7 @@ input:checked + .slider:before {
 }
 
 .btn-primary:hover {
-  background-color: #2b6cb0;
+  background-color: #6B00B3;
 }
 
 .btn-secondary {
@@ -206,7 +206,7 @@ input:checked + .slider:before {
   padding: 7px 8px;
   font-size: 11px;
   background-color: #edf2f7;
-  border: 1px solid #cbd5e0;
+  border: 1px solid #E2D8EA;
   border-radius: 6px;
   cursor: pointer;
   color: #4a5568;
@@ -234,11 +234,11 @@ input:checked + .slider:before {
 }
 
 .status-dot.online {
-  background-color: #48bb78;
+  background-color: #8200D6;
 }
 
 .status-dot.offline {
-  background-color: #e53e3e;
+  background-color: #D500F5;
 }
 
 .popup-footer {
@@ -246,15 +246,15 @@ input:checked + .slider:before {
   text-align: center;
   font-size: 10px;
   color: #a0aec0;
-  background-color: #f7fafc;
+  background-color: #F5F3F8;
   border-top: 1px solid #edf2f7;
 }
 
 .btn-settings-toggle {
   width: 100%;
   background: transparent;
-  border: 1px dashed #cbd5e1;
-  color: #64748b;
+  border: 1px dashed #D500F5;
+  color: #8200D6;
   padding: 8px;
   border-radius: 8px;
   font-size: 13px;
