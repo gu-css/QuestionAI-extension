@@ -19,78 +19,82 @@
     '.c-headline__title'     // Folha de S.Paulo
   ].join(', ');
 
-  
-  // Global Tooltip for Clickbait Badges to avoid overflow:hidden clipping
+
   let globalTooltip = null;
 
-  function createGlobalTooltip() {
-    let existing = document.getElementById('questionai-global-tooltip');
-    if (existing) {
-      globalTooltip = existing;
-      return;
+  function getGlobalTooltip() {
+    if (!globalTooltip) {
+      globalTooltip = document.getElementById('questionai-global-tooltip');
     }
-    globalTooltip = document.createElement('div');
-    globalTooltip.id = 'questionai-global-tooltip';
-    globalTooltip.className = 'clickbait-tooltip-global';
-    document.body.appendChild(globalTooltip);
-  }
-
-  function showGlobalTooltip(e, baitType, prob, conf) {
-    if (!globalTooltip) createGlobalTooltip();
-    
-    globalTooltip.innerHTML = `
-      <span class="tooltip-title">🚨 Alerta de Clickbait</span>
-      <span class="tooltip-row">Categoria: ${escapeHtml(baitType)}</span>
-      <span class="tooltip-row">Probabilidade: ${prob}%</span>
-      <span class="tooltip-row">Confiança: ${conf}%</span>
-    `;
-    
-    globalTooltip.style.visibility = 'hidden';
-    globalTooltip.style.opacity = '0';
-    globalTooltip.style.display = 'flex';
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    
-    // Position it above the badge
-    let top = rect.top + window.scrollY - globalTooltip.offsetHeight - 8;
-    let left = rect.left + window.scrollX;
-    
-    // Check if it overflows the top of the viewport
-    if (rect.top - globalTooltip.offsetHeight - 8 < 0) {
-      // Put it below the badge
-      top = rect.bottom + window.scrollY + 8;
+    if (!globalTooltip) {
+      globalTooltip = document.createElement('div');
+      globalTooltip.id = 'questionai-global-tooltip';
+      globalTooltip.style.cssText = `
+        all: initial !important;
+        position: fixed !important;
+        z-index: 2147483647 !important;
+        background-color: #1a202c !important;
+        color: #f7fafc !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        font-size: 12px !important;
+        line-height: 1.5 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        pointer-events: none !important;
+        display: none !important;
+        flex-direction: column !important;
+        min-width: 180px !important;
+        width: max-content !important;
+      `;
+      document.body.appendChild(globalTooltip);
     }
-    
-    globalTooltip.style.top = top + 'px';
-    globalTooltip.style.left = left + 'px';
-    
-    globalTooltip.style.visibility = 'visible';
-    globalTooltip.style.opacity = '1';
-  }
-
-  function hideGlobalTooltip() {
-    if (globalTooltip) {
-      globalTooltip.style.opacity = '0';
-      globalTooltip.style.visibility = 'hidden';
-    }
+    return globalTooltip;
   }
 
   document.addEventListener('mouseover', (e) => {
     const badge = e.target.closest('.clickbait-badge');
     if (badge) {
+      const tooltip = getGlobalTooltip();
+      
       const baitType = badge.dataset.baitType;
       const prob = badge.dataset.prob;
       const conf = badge.dataset.conf;
-      if (baitType) showGlobalTooltip({currentTarget: badge}, baitType, prob, conf);
+      
+      tooltip.innerHTML = `
+        <strong style="all: initial !important; display: block !important; color: #fc8181 !important; font-weight: 700 !important; margin-bottom: 6px !important; font-family: inherit !important; font-size: 13px !important;">🚨 Alerta de Clickbait</strong>
+        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Categoria: ${escapeHtml(baitType)}</span>
+        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Probabilidade: ${prob}%</span>
+        <span style="all: initial !important; display: block !important; color: #e2e8f0 !important; font-family: inherit !important; font-size: 12px !important;">Confiança: ${conf}%</span>
+      `;
+      
+      tooltip.style.setProperty('display', 'flex', 'important');
+      
+      // Compute position
+      const rect = badge.getBoundingClientRect();
+      let top = rect.top - tooltip.offsetHeight - 8;
+      if (top < 0) {
+        top = rect.bottom + 8; // flip to bottom if no space at top
+      }
+      
+      tooltip.style.setProperty('top', top + 'px', 'important');
+      tooltip.style.setProperty('left', rect.left + 'px', 'important');
     }
   });
 
   document.addEventListener('mouseout', (e) => {
     const badge = e.target.closest('.clickbait-badge');
     if (badge) {
-      hideGlobalTooltip();
+      const tooltip = getGlobalTooltip();
+      tooltip.style.setProperty('display', 'none', 'important');
     }
   });
+
+  window.addEventListener('scroll', () => {
+    if (globalTooltip) {
+      globalTooltip.style.setProperty('display', 'none', 'important');
+    }
+  }, {passive: true});
 
   let isInjectingBadges = false;
   let debounceTimer = null;
