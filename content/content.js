@@ -19,6 +19,75 @@
     '.c-headline__title'     // Folha de S.Paulo
   ].join(', ');
 
+  
+  // Global Tooltip for Clickbait Badges to avoid overflow:hidden clipping
+  let globalTooltip = null;
+
+  function createGlobalTooltip() {
+    if (document.getElementById('questionai-global-tooltip')) return;
+    globalTooltip = document.createElement('div');
+    globalTooltip.id = 'questionai-global-tooltip';
+    globalTooltip.className = 'clickbait-tooltip-global';
+    document.body.appendChild(globalTooltip);
+  }
+
+  function showGlobalTooltip(e, baitType, prob, conf) {
+    if (!globalTooltip) createGlobalTooltip();
+    
+    globalTooltip.innerHTML = `
+      <span class="tooltip-title">🚨 Alerta de Clickbait</span>
+      <span class="tooltip-row">Categoria: ${escapeHtml(baitType)}</span>
+      <span class="tooltip-row">Probabilidade: ${prob}%</span>
+      <span class="tooltip-row">Confiança: ${conf}%</span>
+    `;
+    
+    globalTooltip.style.visibility = 'hidden';
+    globalTooltip.style.opacity = '0';
+    globalTooltip.style.display = 'block';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    // Position it above the badge
+    let top = rect.top + window.scrollY - globalTooltip.offsetHeight - 8;
+    let left = rect.left + window.scrollX;
+    
+    // Check if it overflows the top of the viewport
+    if (rect.top - globalTooltip.offsetHeight - 8 < 0) {
+      // Put it below the badge
+      top = rect.bottom + window.scrollY + 8;
+    }
+    
+    globalTooltip.style.top = top + 'px';
+    globalTooltip.style.left = left + 'px';
+    
+    globalTooltip.style.visibility = 'visible';
+    globalTooltip.style.opacity = '1';
+  }
+
+  function hideGlobalTooltip() {
+    if (globalTooltip) {
+      globalTooltip.style.opacity = '0';
+      globalTooltip.style.visibility = 'hidden';
+    }
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const badge = e.target.closest('.clickbait-badge');
+    if (badge) {
+      const baitType = badge.dataset.baitType;
+      const prob = badge.dataset.prob;
+      const conf = badge.dataset.conf;
+      if (baitType) showGlobalTooltip({currentTarget: badge}, baitType, prob, conf);
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const badge = e.target.closest('.clickbait-badge');
+    if (badge) {
+      hideGlobalTooltip();
+    }
+  });
+
   let isInjectingBadges = false;
   let debounceTimer = null;
 
@@ -100,7 +169,10 @@
     badge.setAttribute('role', 'status');
 
     // Visual text structure matching contract: "⚠️ Clickbait: <span class="bait-type">{bait_type}</span>"
-    badge.innerHTML = `⚠️ Clickbait: <span class="bait-type">${escapeHtml(baitType)}</span><span class="clickbait-tooltip"><span class="tooltip-title">🚨 Alerta de Clickbait</span><span class="tooltip-row">Categoria: ${escapeHtml(baitType)}</span><span class="tooltip-row">Probabilidade: ${probPercent}%</span><span class="tooltip-row">Confiança: ${confPercent}%</span></span>`;
+    badge.dataset.baitType = baitType;
+    badge.dataset.prob = probPercent;
+    badge.dataset.conf = confPercent;
+    badge.innerHTML = `⚠️ Clickbait: <span class="bait-type">${escapeHtml(baitType)}</span>`;
 
     el.appendChild(badge);
   }
