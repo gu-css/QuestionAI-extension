@@ -143,6 +143,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
+      // checkCache (for instant loading of cached items)
+      if (action === "checkCache") {
+        const headlines = request.headlines || [];
+        const cachedResults = [];
+        const missingHeadlines = [];
+        const currentTimestamp = Date.now();
+        
+        headlines.forEach(hl => {
+          if (cache[hl]) {
+            cache[hl].lastUsed = currentTimestamp;
+            let res = Object.assign({}, cache[hl].result);
+            if (res && res.probability !== undefined) {
+               res.is_clickbait = (res.probability * 100) >= threshold;
+            }
+            cachedResults.push(res);
+          } else {
+            missingHeadlines.push(hl);
+          }
+        });
+        
+        // save lastUsed updates if we had hits, but it's optional for read-only speed. We will just save it.
+        if (cachedResults.length > 0) {
+           await chrome.storage.local.set({ headlineCache: cache });
+        }
+
+        sendResponse({ success: true, cachedResults, missingHeadlines });
+        return;
+      }
+
       // predictBatch
       if (action === "predictBatch" || action === "PREDICT_BATCH") {
         const headlines = request.headlines || [];
@@ -188,12 +217,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
              finalResults.push(r);
           });
 
-          // Trim cache to 250 items (LRU)
+          // Trim cache to 500 items (LRU)
           const cacheKeys = Object.keys(cache);
-          if (cacheKeys.length > 250) {
+          if (cacheKeys.length > 500) {
             cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed); // Descending
             const trimmedCache = {};
-            for (let i = 0; i < 250; i++) {
+            for (let i = 0; i < 500; i++) {
               trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
             }
             cache = trimmedCache;
@@ -272,10 +301,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
           // Trim cache
           const cacheKeys = Object.keys(cache);
-          if (cacheKeys.length > 250) {
+          if (cacheKeys.length > 500) {
             cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed);
             const trimmedCache = {};
-            for (let i = 0; i < 250; i++) {
+            for (let i = 0; i < 500; i++) {
               trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
             }
             cache = trimmedCache;

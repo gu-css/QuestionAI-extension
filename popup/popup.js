@@ -14,8 +14,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnPresetHf = document.getElementById("preset-hf");
   const statScanned = document.getElementById("stat-scanned");
   const statDetected = document.getElementById("stat-detected");
-  const statCached = document.getElementById("stat-cached");
-  const statRate = document.getElementById("stat-rate");
   const btnClearCache = document.getElementById("btn-clear-cache");
   const statusDot = document.getElementById("status-dot");
   const statusText = document.getElementById("status-text");
@@ -38,7 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const currentUrl = settings.apiUrl || "https://clickbait-api.onrender.com";
   const currentThreshold = settings.threshold !== undefined ? settings.threshold : 75;
   const stats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
-  const cachedItemsCount = settings.headlineCache ? Object.keys(settings.headlineCache).length : 0;
 
   toggleEnabled.checked = isEnabled;
   inputUrl.value = currentUrl;
@@ -52,21 +49,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function updateStatsUI(currentStats, cacheCount) {
+  function updateStatsUI(currentStats) {
     if (statScanned) statScanned.textContent = currentStats.totalScanned || 0;
     if (statDetected) statDetected.textContent = currentStats.clickbaitDetected || 0;
-    if (statCached) statCached.textContent = cacheCount !== undefined ? cacheCount : (statCached.textContent || 0);
-    
-    if (statRate) {
-      if (currentStats.totalScanned > 0) {
-        statRate.textContent = ((currentStats.clickbaitDetected / currentStats.totalScanned) * 100).toFixed(1) + "%";
-      } else {
-        statRate.textContent = "0.0%";
-      }
-    }
   }
 
-  updateStatsUI(stats, cachedItemsCount);
+  updateStatsUI(stats);
 
   function updateStatus(online, message) {
     if (statusDot) statusDot.className = "status-dot " + (online ? "online" : "offline");
@@ -94,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
         chrome.runtime.sendMessage({ action: "clearCache" }, (resp) => {
           if (resp && resp.success) {
-            updateStatsUI(stats, 0);
+            updateStatsUI(stats);
             updateStatus(true, "Cache limpo com sucesso!");
           }
         });
@@ -206,20 +194,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (changes.stats) {
           const newStats = changes.stats.newValue;
           if (newStats) {
-            // We need the current cache count
-            chrome.storage.local.get("headlineCache", (res) => {
-              const cacheCount = res.headlineCache ? Object.keys(res.headlineCache).length : 0;
-              updateStatsUI(newStats, cacheCount);
-            });
+            updateStatsUI(newStats);
           }
-        }
-        if (changes.headlineCache) {
-          const newCache = changes.headlineCache.newValue;
-          const cacheCount = newCache ? Object.keys(newCache).length : 0;
-          chrome.storage.local.get("stats", (res) => {
-             const currentStats = res.stats || { totalScanned: 0, clickbaitDetected: 0 };
-             updateStatsUI(currentStats, cacheCount);
-          });
         }
       }
     });

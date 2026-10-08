@@ -109,12 +109,9 @@
       .replace(/'/g, '&#39;');
   }
 
-  // Clean and extract text from element without badge text
+  // Clean and extract text from element
   function extractCleanText(el) {
-    const clone = el.cloneNode(true);
-    const badges = clone.querySelectorAll('.clickbait-tooltip');
-    badges.forEach((b) => b.remove());
-    return (clone.textContent || '').trim().replace(/\s+/g, ' ');
+    return (el.textContent || '').trim().replace(/\s+/g, ' ');
   }
 
   // Validate candidate element against noise filtering rules
@@ -122,8 +119,7 @@
     // Idempotency checks
     if (
       el.dataset.clickbaitScanned === 'true' ||
-      el.classList.contains('clickbait-detected') ||
-      false
+      el.classList.contains('clickbait-detected')
     ) {
       return false;
     }
@@ -178,7 +174,7 @@
 
   // Scan and process DOM headlines
   function scanHeadlines() {
-  console.log('[QuestionAI] Scanning headlines...');
+    console.log('[QuestionAI] Scanning headlines...');
     if (isInjectingBadges) return;
 
     let elements = [];
@@ -203,29 +199,61 @@
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
       try {
+        // Step 1: Check cache for instant loading
         chrome.runtime.sendMessage(
-          {
-            action: 'predictBatch',
-            headlines: candidates
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              return;
-            }
-            if (!response || !response.success || !response.results) return;
+          { action: 'checkCache', headlines: candidates },
+          (cacheResponse) => {
+            if (chrome.runtime.lastError) return;
+            if (!cacheResponse || !cacheResponse.success) return;
 
-            isInjectingBadges = true;
-            requestAnimationFrame(() => {
-              try {
-                response.results.forEach((data, idx) => {
-                  if (data && data.is_clickbait && candidateElements[idx]) {
-                    injectBadge(candidateElements[idx], data);
+            // Apply cached badges immediately
+            if (cacheResponse.cachedResults && cacheResponse.cachedResults.length > 0) {
+               isInjectingBadges = true;
+               requestAnimationFrame(() => {
+                 try {
+                   cacheResponse.cachedResults.forEach(data => {
+                      if (data && data.is_clickbait && data.headline) {
+                         const idx = candidates.indexOf(data.headline);
+                         if (idx !== -1 && candidateElements[idx]) {
+                           injectBadge(candidateElements[idx], data);
+                         }
+                      }
+                   });
+                 } finally {
+                   isInjectingBadges = false;
+                 }
+               });
+            }
+
+            // Step 2: Query API for missing items
+            const missing = cacheResponse.missingHeadlines || [];
+            if (missing.length === 0) return;
+
+            const missingElements = missing.map(hl => candidateElements[candidates.indexOf(hl)]);
+
+            chrome.runtime.sendMessage(
+              {
+                action: 'predictBatch',
+                headlines: missing
+              },
+              (response) => {
+                if (chrome.runtime.lastError) return;
+                if (!response || !response.success || !response.results) return;
+
+                isInjectingBadges = true;
+                requestAnimationFrame(() => {
+                  try {
+                    response.results.forEach((data, idx) => {
+                      if (data && data.is_clickbait && missingElements[idx]) {
+                        injectBadge(missingElements[idx], data);
+                      }
+                    });
+                  } finally {
+                    isInjectingBadges = false;
                   }
                 });
-              } finally {
-                isInjectingBadges = false;
               }
-            });
+            );
           }
         );
       } catch (e) {
@@ -254,13 +282,8 @@
         if (mutation.addedNodes.length > 0) {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE) {
-              if (
-                !node.classList?.contains('clickbait-badge') &&
-                !node.classList?.contains('clickbait-tooltip')
-              ) {
-                hasRelevantMutation = true;
-                break;
-              }
+              hasRelevantMutation = true;
+              break;
             }
           }
         }
@@ -276,8 +299,12 @@
   }
 
   function removeClickbaitEffects() {
-    document.querySelectorAll('.clickbait-badge').forEach((b) => b.remove());
-    document.querySelectorAll('.clickbait-detected').forEach((e) => e.classList.remove('clickbait-detected'));
+    document.querySelectorAll('.clickbait-detected').forEach((e) => {
+      e.classList.remove('clickbait-detected');
+      delete e.dataset.baitType;
+      delete e.dataset.prob;
+      delete e.dataset.conf;
+    });
     document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
   }
 
