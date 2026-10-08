@@ -214,4 +214,85 @@
       }
     });
   }
+
+  // Intercept clicks on clickbait links
+  function showWarningModal(href, archetype, linkEl) {
+    if (document.getElementById('questionai-warning-modal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'questionai-warning-modal';
+    modal.className = 'questionai-overlay';
+    
+    modal.innerHTML = `
+      <div class="questionai-modal-content">
+        <div class="questionai-icon">🚨</div>
+        <h2>Alerta de Clickbait!</h2>
+        <p>Você está prestes a abrir uma notícia manipulativa classificada como <strong>${escapeHtml(archetype)}</strong>.</p>
+        
+        <div class="questionai-harms">
+          <h3>Por que isso é prejudicial?</h3>
+          <ul>
+            <li><strong>Manipulação Emocional:</strong> Brinca com sua ansiedade e curiosidade usando gatilhos falsos.</li>
+            <li><strong>Perda de Tempo:</strong> A manchete omite o fato principal apenas para forçar seu clique.</li>
+            <li><strong>Desinformação:</strong> Muitas vezes, o conteúdo não entrega a promessa chocante do título.</li>
+          </ul>
+        </div>
+
+        <div class="questionai-actions">
+          <button id="questionai-btn-cancel" class="btn-cancel">Não, me tire daqui</button>
+          <button id="questionai-btn-continue" class="btn-continue">Sim, quero ver mesmo assim</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('questionai-btn-cancel').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    document.getElementById('questionai-btn-continue').addEventListener('click', () => {
+      modal.remove();
+      linkEl.dataset.clickbaitBypassed = 'true';
+      
+      // Simulate normal navigation
+      if (linkEl.target === '_blank') {
+        window.open(href, '_blank');
+      } else {
+        window.location.href = href;
+      }
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (!link) return;
+
+    // Is the link itself a clickbait or inside a clickbait wrapper?
+    const clickbaitEl = e.target.closest('.clickbait-detected');
+    if (!clickbaitEl) {
+      // Sometimes the badge is next to the link, so check if any parent contains the badge but is not the link itself
+      // Actually, injectBadge adds 'clickbait-detected' to the heading or link itself.
+      // If the link is inside an h2 that has clickbait-detected, it will be caught.
+      // If the link IS the clickbait-detected, it will be caught.
+      return;
+    }
+
+    if (link.dataset.clickbaitBypassed === 'true') return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    let archetype = "Sensacionalismo Geral";
+    const badge = clickbaitEl.querySelector('.clickbait-badge');
+    if (badge) {
+      const typeEl = badge.querySelector('.bait-type');
+      if (typeEl && typeEl.innerText) {
+        archetype = typeEl.innerText;
+      }
+    }
+
+    showWarningModal(link.href, archetype, link);
+  }, true); // Use capture phase to intercept before site's own click handlers
+
 })();
