@@ -50,6 +50,16 @@ body {
   font-size: 13px;
 }
 
+/* Esconde a barra de rolagem vertical do popup */
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 .popup-container {
   display: flex;
   flex-direction: column;
@@ -66,7 +76,7 @@ body {
 }
 
 .logo-wrapper { display: flex; align-items: center; gap: 8px; }
-.logo-wrapper img { flex-shrink: 0; width: 100px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+.logo-wrapper img { flex-shrink: 0; width: 100px; object-fit: contain; }
 
 /* Switch toggle */
 .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
