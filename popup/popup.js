@@ -91,6 +91,56 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initial check
   checkHealth(currentUrl);
+
+  // --- Whitelist / Blacklist (Current Site) ---
+  const btnToggleSite = document.getElementById("btn-toggle-site");
+  if (btnToggleSite && typeof chrome !== "undefined" && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      if (!tabs || !tabs.length || !tabs[0].url) return;
+      try {
+        const urlObj = new URL(tabs[0].url);
+        const hostname = urlObj.hostname;
+        if (!hostname || hostname.startsWith('chrome-extension')) {
+          btnToggleSite.style.display = 'none';
+          return;
+        }
+
+        const data = await chrome.storage.local.get("disabledSites");
+        let disabledSites = data.disabledSites || [];
+        
+        if (disabledSites.includes(hostname)) {
+          btnToggleSite.textContent = `Ativar em: ${hostname}`;
+          btnToggleSite.classList.add("btn-primary");
+          btnToggleSite.classList.remove("btn-secondary");
+        } else {
+          btnToggleSite.textContent = `Desativar em: ${hostname}`;
+          btnToggleSite.classList.add("btn-secondary");
+          btnToggleSite.classList.remove("btn-primary");
+        }
+
+        btnToggleSite.addEventListener("click", async () => {
+          const freshData = await chrome.storage.local.get("disabledSites");
+          let currentList = freshData.disabledSites || [];
+          
+          if (currentList.includes(hostname)) {
+            // Remove from disabled
+            currentList = currentList.filter(h => h !== hostname);
+            btnToggleSite.textContent = `Desativar em: ${hostname}`;
+            btnToggleSite.classList.replace("btn-primary", "btn-secondary");
+          } else {
+            // Add to disabled
+            currentList.push(hostname);
+            btnToggleSite.textContent = `Ativar em: ${hostname}`;
+            btnToggleSite.classList.replace("btn-secondary", "btn-primary");
+          }
+          await chrome.storage.local.set({ disabledSites: currentList });
+        });
+      } catch (e) {
+        // Invalid URL
+        btnToggleSite.style.display = 'none';
+      }
+    });
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {

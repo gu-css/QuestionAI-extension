@@ -282,26 +282,54 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // Initial scan on load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scheduleScan);
-  } else {
-    scheduleScan();
+  function initializeApp() {
+    // Initial scan on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', scheduleScan);
+    } else {
+      scheduleScan();
+    }
+
+    // Listen for storage changes (toggle on/off)
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local') {
+          if (changes.enabled && changes.enabled.newValue === false) {
+            removeClickbaitEffects();
+          } else if (changes.enabled && changes.enabled.newValue === true) {
+            scheduleScan();
+          }
+          if (changes.disabledSites) {
+             const disabled = changes.disabledSites.newValue || [];
+             if (disabled.includes(window.location.hostname)) {
+                 removeClickbaitEffects();
+             } else {
+                 scheduleScan();
+             }
+          }
+        }
+      });
+    }
   }
 
-  // Listen for storage changes (toggle on/off)
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === 'local' && changes.enabled) {
-        if (changes.enabled.newValue === false) {
-          document.querySelectorAll('.clickbait-badge').forEach((b) => b.remove());
-          document.querySelectorAll('.clickbait-detected').forEach((e) => e.classList.remove('clickbait-detected'));
-          document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
-        } else {
-          scheduleScan();
-        }
+  function removeClickbaitEffects() {
+    document.querySelectorAll('.clickbait-badge').forEach((b) => b.remove());
+    document.querySelectorAll('.clickbait-detected').forEach((e) => e.classList.remove('clickbait-detected'));
+    document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['disabledSites', 'enabled'], (data) => {
+      if (data.enabled === false) return; // Globally disabled
+      const disabledSites = data.disabledSites || [];
+      if (disabledSites.includes(window.location.hostname)) {
+        console.log('[QuestionAI] Desativado neste site: ' + window.location.hostname);
+        return;
       }
+      initializeApp();
     });
+  } else {
+    initializeApp(); // fallback if not extension context
   }
 
   // Intercept clicks on clickbait links

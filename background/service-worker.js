@@ -170,16 +170,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         const result = await querySingleHeadline(text, apiUrl, timeoutMs);
-
-        if (result && result.is_clickbait) {
-          const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
-          await chrome.storage.local.set({
-            stats: {
-              totalScanned: currentStats.totalScanned + 1,
-              clickbaitDetected: currentStats.clickbaitDetected + 1
-            }
-          });
-        }
+        const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
+        
+        await chrome.storage.local.set({
+          stats: {
+            totalScanned: currentStats.totalScanned + 1,
+            clickbaitDetected: currentStats.clickbaitDetected + (result && result.is_clickbait ? 1 : 0)
+          }
+        });
 
         sendResponse({ success: true, data: result });
         return;
