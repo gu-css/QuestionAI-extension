@@ -53,13 +53,12 @@
   }
 
   document.addEventListener('mouseover', (e) => {
-    const badge = e.target.closest('.clickbait-badge');
-    if (badge) {
+    const targetEl = e.target.closest('.clickbait-detected');
+    if (targetEl) {
       const tooltip = getGlobalTooltip();
-      
-      const baitType = badge.dataset.baitType;
-      const prob = badge.dataset.prob;
-      const conf = badge.dataset.conf;
+      const baitType = targetEl.dataset.baitType;
+      const prob = targetEl.dataset.prob;
+      const conf = targetEl.dataset.conf;
       
       tooltip.innerHTML = `
         <strong style="all: initial !important; display: block !important; color: #D500F5 !important; font-weight: 700 !important; margin-bottom: 6px !important; font-family: inherit !important; font-size: 13px !important;">🚨 Alerta de Clickbait</strong>
@@ -71,7 +70,7 @@
       tooltip.style.setProperty('display', 'flex', 'important');
       
       // Compute position
-      const rect = badge.getBoundingClientRect();
+      const rect = targetEl.getBoundingClientRect();
       let top = rect.top - tooltip.offsetHeight - 8;
       if (top < 0) {
         top = rect.bottom + 8; // flip to bottom if no space at top
@@ -83,8 +82,8 @@
   });
 
   document.addEventListener('mouseout', (e) => {
-    const badge = e.target.closest('.clickbait-badge');
-    if (badge) {
+    const targetEl = e.target.closest('.clickbait-detected');
+    if (targetEl) {
       const tooltip = getGlobalTooltip();
       tooltip.style.setProperty('display', 'none', 'important');
     }
@@ -113,7 +112,7 @@
   // Clean and extract text from element without badge text
   function extractCleanText(el) {
     const clone = el.cloneNode(true);
-    const badges = clone.querySelectorAll('.clickbait-badge, .clickbait-tooltip');
+    const badges = clone.querySelectorAll('.clickbait-tooltip');
     badges.forEach((b) => b.remove());
     return (clone.textContent || '').trim().replace(/\s+/g, ' ');
   }
@@ -124,7 +123,7 @@
     if (
       el.dataset.clickbaitScanned === 'true' ||
       el.classList.contains('clickbait-detected') ||
-      el.querySelector('.clickbait-badge')
+      false
     ) {
       return false;
     }
@@ -161,8 +160,8 @@
   }
 
   // Visual badge injection
-  function injectBadge(el, data) {
-    if (el.classList.contains('clickbait-detected') || el.querySelector('.clickbait-badge')) {
+    function injectBadge(el, data) {
+    if (el.classList.contains('clickbait-detected')) {
       return;
     }
 
@@ -172,17 +171,9 @@
     const probPercent = Math.round((data.probability || 0) * 100);
     const confPercent = Math.round((data.confidence || 0) * 100);
 
-    const badge = document.createElement('span');
-    badge.className = 'clickbait-badge';
-    badge.setAttribute('role', 'status');
-
-    // Visual text structure matching contract: "⚠️ Clickbait: <span class="bait-type">{bait_type}</span>"
-    badge.dataset.baitType = baitType;
-    badge.dataset.prob = probPercent;
-    badge.dataset.conf = confPercent;
-    badge.innerHTML = `⚠️ Clickbait: <span class="bait-type">${escapeHtml(baitType)}</span>`;
-
-    el.appendChild(badge);
+    el.dataset.baitType = baitType;
+    el.dataset.prob = probPercent;
+    el.dataset.conf = confPercent;
   }
 
   // Scan and process DOM headlines
@@ -404,14 +395,7 @@
     e.preventDefault();
     e.stopPropagation();
 
-    let archetype = "Sensacionalismo Geral";
-    const badge = clickbaitEl.querySelector('.clickbait-badge');
-    if (badge) {
-      const typeEl = badge.querySelector('.bait-type');
-      if (typeEl && typeEl.innerText) {
-        archetype = typeEl.innerText;
-      }
-    }
+    let archetype = clickbaitEl.dataset.baitType || "Sensacionalismo Geral";
 
     showWarningModal(link.href, archetype, link);
   }, true); // Use capture phase to intercept before site's own click handlers

@@ -2,49 +2,27 @@
 
 /* Highlight applied to headline element */
 .clickbait-detected {
-  position: relative !important;
-  border-left: 4px solid #D500F5 !important;
-  padding-left: 8px !important;
-  transition: background-color 0.2s ease;
-}
-
-/* Badge displayed beside the headline */
-.clickbait-badge {
-  all: initial !important;
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  flex-wrap: wrap !important;
-  gap: 4px !important;
-  margin-left: 8px !important;
-  padding: 2px 8px !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  text-transform: none !important;
-  letter-spacing: normal !important;
-  white-space: normal !important;
-  vertical-align: middle !important;
-  background-color: #F5F3F8 !important;
-  color: #202020 !important;
-  border: 1px solid #D500F5 !important;
-  border-radius: 8px !important;
+  color: transparent !important;
+  text-shadow: 0 0 12px rgba(0,0,0,0.4) !important;
+  filter: blur(4px) opacity(0.5) !important;
+  transition: filter 0.3s ease, text-shadow 0.3s ease, color 0.3s ease, opacity 0.3s ease !important;
   cursor: help !important;
-  user-select: none !important;
-  position: relative !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  flex-shrink: 0 !important;
-  max-width: 100% !important;
 }
 
-/* Typology/Category chip inside badge */
-.clickbait-badge .bait-type {
-  font-weight: 700 !important;
-  color: #8200D6 !important;
+@media (prefers-color-scheme: dark) {
+  .clickbait-detected {
+    text-shadow: 0 0 12px rgba(255,255,255,0.4) !important;
+  }
 }
 
-/* QuestionAI Warning Modal Overlay */
+/* Hover state */
+.clickbait-detected:hover {
+  color: inherit !important;
+  text-shadow: none !important;
+  filter: blur(0px) opacity(1) !important;
+}
+
+/* QuestionAI Warning Modal Overlay - (Keep existing logic if any) */
 .questionai-overlay {
   position: fixed !important;
   top: 0 !important;
