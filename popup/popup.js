@@ -14,13 +14,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnPresetHf = document.getElementById("preset-hf");
   const statScanned = document.getElementById("stat-scanned");
   const statDetected = document.getElementById("stat-detected");
+  const statCached = document.getElementById("stat-cached");
+  const statRate = document.getElementById("stat-rate");
+  const btnClearCache = document.getElementById("btn-clear-cache");
   const statusDot = document.getElementById("status-dot");
   const statusText = document.getElementById("status-text");
 
   // Load current configuration from storage
-  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, threshold: 75, stats: { totalScanned: 0, clickbaitDetected: 0 } };
+  let settings = { apiUrl: "https://clickbait-api.onrender.com", enabled: true, threshold: 75, stats: { totalScanned: 0, clickbaitDetected: 0 }, headlineCache: {} };
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold"]);
+    const stored = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache"]);
     
     // Auto-migrate old URLs (Hugging Face or sua-api)
     if (stored.apiUrl && (stored.apiUrl.includes("hf.space") || stored.apiUrl.includes("sua-api"))) {
@@ -35,6 +38,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const currentUrl = settings.apiUrl || "https://clickbait-api.onrender.com";
   const currentThreshold = settings.threshold !== undefined ? settings.threshold : 75;
   const stats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
+  const cachedItemsCount = settings.headlineCache ? Object.keys(settings.headlineCache).length : 0;
 
   toggleEnabled.checked = isEnabled;
   inputUrl.value = currentUrl;
@@ -48,12 +52,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  statScanned.textContent = stats.totalScanned || 0;
-  statDetected.textContent = stats.clickbaitDetected || 0;
+  function updateStatsUI(currentStats, cacheCount) {
+    if (statScanned) statScanned.textContent = currentStats.totalScanned || 0;
+    if (statDetected) statDetected.textContent = currentStats.clickbaitDetected || 0;
+    if (statCached) statCached.textContent = cacheCount !== undefined ? cacheCount : (statCached.textContent || 0);
+    
+    if (statRate) {
+      if (currentStats.totalScanned > 0) {
+        statRate.textContent = ((currentStats.clickbaitDetected / currentStats.totalScanned) * 100).toFixed(1) + "%";
+      } else {
+        statRate.textContent = "0.0%";
+      }
+    }
+  }
+
+  updateStatsUI(stats, cachedItemsCount);
 
   function updateStatus(online, message) {
-    statusDot.className = "status-dot " + (online ? "online" : "offline");
-    statusText.textContent = message;
+    if (statusDot) statusDot.className = "status-dot " + (online ? "online" : "offline");
+    if (statusText) statusText.textContent = message;
   }
 
   function checkHealth(url) {
@@ -71,41 +88,65 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Preset Buttons
-  btnPresetLocal.addEventListener("click", () => {
-    inputUrl.value = "http://localhost:8000";
-  });
+  // Clear Cache Button
+  if (btnClearCache) {
+    btnClearCache.addEventListener("click", () => {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ action: "clearCache" }, (resp) => {
+          if (resp && resp.success) {
+            updateStatsUI(stats, 0);
+            updateStatus(true, "Cache limpo com sucesso!");
+          }
+        });
+      }
+    });
+  }
 
-  btnPresetHf.addEventListener("click", () => {
-    inputUrl.value = "https://clickbait-api.onrender.com";
-  });
+  // Preset Buttons
+  if (btnPresetLocal) {
+    btnPresetLocal.addEventListener("click", () => {
+      inputUrl.value = "http://localhost:8000";
+    });
+  }
+
+  if (btnPresetHf) {
+    btnPresetHf.addEventListener("click", () => {
+      inputUrl.value = "https://clickbait-api.onrender.com";
+    });
+  }
 
   // Toggle activation
-  toggleEnabled.addEventListener("change", async () => {
-    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      await chrome.storage.local.set({ enabled: toggleEnabled.checked });
-    }
-  });
+  if (toggleEnabled) {
+    toggleEnabled.addEventListener("change", async () => {
+      if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ enabled: toggleEnabled.checked });
+      }
+    });
+  }
 
   // Save Settings
-  btnSave.addEventListener("click", async () => {
-    const newUrl = inputUrl.value.trim() || "http://localhost:8000";
-    const newThreshold = parseInt(inputThreshold.value, 10);
-    
-    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
-      await chrome.storage.local.set({ 
-        apiUrl: newUrl,
-        threshold: newThreshold
-      });
-    }
-    updateStatus(true, "Configuração salva com sucesso!");
-    setTimeout(() => checkHealth(newUrl), 800);
-  });
+  if (btnSave) {
+    btnSave.addEventListener("click", async () => {
+      const newUrl = inputUrl.value.trim() || "http://localhost:8000";
+      const newThreshold = parseInt(inputThreshold.value, 10);
+      
+      if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ 
+          apiUrl: newUrl,
+          threshold: newThreshold
+        });
+      }
+      updateStatus(true, "Configuração salva com sucesso!");
+      setTimeout(() => checkHealth(newUrl), 800);
+    });
+  }
 
   // Test API Connectivity
-  btnTest.addEventListener("click", () => {
-    checkHealth(inputUrl.value.trim());
-  });
+  if (btnTest) {
+    btnTest.addEventListener("click", () => {
+      checkHealth(inputUrl.value.trim());
+    });
+  }
 
   // Initial check
   checkHealth(currentUrl);
@@ -161,18 +202,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === "local" && changes.stats) {
-        const newStats = changes.stats.newValue;
-        if (newStats) {
-          statScanned.textContent = newStats.totalScanned || 0;
-          statDetected.textContent = newStats.clickbaitDetected || 0;
+      if (areaName === "local") {
+        if (changes.stats) {
+          const newStats = changes.stats.newValue;
+          if (newStats) {
+            // We need the current cache count
+            chrome.storage.local.get("headlineCache", (res) => {
+              const cacheCount = res.headlineCache ? Object.keys(res.headlineCache).length : 0;
+              updateStatsUI(newStats, cacheCount);
+            });
+          }
+        }
+        if (changes.headlineCache) {
+          const newCache = changes.headlineCache.newValue;
+          const cacheCount = newCache ? Object.keys(newCache).length : 0;
+          chrome.storage.local.get("stats", (res) => {
+             const currentStats = res.stats || { totalScanned: 0, clickbaitDetected: 0 };
+             updateStatsUI(currentStats, cacheCount);
+          });
         }
       }
     });
   }
-});
 
-document.addEventListener('DOMContentLoaded', () => {
   const toggleBtn = document.getElementById('btn-settings-toggle');
   const configSec = document.getElementById('config-section');
   if(toggleBtn && configSec) {
@@ -182,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBtn.textContent = '❌ Fechar Config';
       } else {
         configSec.style.display = 'none';
-        toggleBtn.textContent = '⚙️ Config';
+        toggleBtn.textContent = 'Configurações';
       }
     });
   }

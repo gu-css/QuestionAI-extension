@@ -100,11 +100,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   (async () => {
     try {
-      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold"]);
+      const settings = await chrome.storage.local.get(["apiUrl", "enabled", "stats", "threshold", "headlineCache"]);
       const isEnabled = settings.enabled !== false;
       const apiUrl = request.apiUrl || settings.apiUrl || DEFAULT_CONFIG.apiUrl;
       const threshold = settings.threshold !== undefined ? settings.threshold : 75;
       const timeoutMs = DEFAULT_CONFIG.timeoutMs;
+      
+      let cache = settings.headlineCache || {};
 
       // getConfig
       if (action === "getConfig" || action === "GET_CONFIG") {
@@ -114,7 +116,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             apiUrl: settings.apiUrl || DEFAULT_CONFIG.apiUrl,
             enabled: isEnabled,
             stats: settings.stats || { totalScanned: 0, clickbaitDetected: 0 },
-            threshold: threshold
+            threshold: threshold,
+            cachedItems: Object.keys(cache).length
           }
         });
         return;
@@ -124,6 +127,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (action === "healthCheck" || action === "HEALTH_CHECK" || action === "checkHealth") {
         const health = await checkApiHealth(apiUrl);
         sendResponse({ success: true, health: health });
+        return;
+      }
+
+      // clearCache
+      if (action === "clearCache" || action === "CLEAR_CACHE") {
+        await chrome.storage.local.set({ headlineCache: {} });
+        sendResponse({ success: true });
         return;
       }
 
@@ -141,31 +151,84 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        const data = await queryBatchHeadlines(headlines, apiUrl, timeoutMs);
-        const results = data.results || [];
+        const missingHeadlines = [];
+        const finalResults = [];
+        const currentTimestamp = Date.now();
 
-        // Apply threshold override
-        results.forEach(r => {
-           if (r && r.probability !== undefined) {
-               r.is_clickbait = (r.probability * 100) >= threshold;
-           }
-        });
-
-        // Update stats in storage
-        const detectedCount = results.filter((r) => r && r.is_clickbait).length;
-        const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
-        await chrome.storage.local.set({
-          stats: {
-            totalScanned: currentStats.totalScanned + headlines.length,
-            clickbaitDetected: currentStats.clickbaitDetected + detectedCount
+        // Check cache
+        headlines.forEach(hl => {
+          if (cache[hl]) {
+            cache[hl].lastUsed = currentTimestamp;
+            finalResults.push(cache[hl].result);
+          } else {
+            missingHeadlines.push(hl);
           }
         });
 
+        let newDetectedCount = 0;
+
+        // Query missing
+        if (missingHeadlines.length > 0) {
+          const data = await queryBatchHeadlines(missingHeadlines, apiUrl, timeoutMs);
+          const results = data.results || [];
+
+          results.forEach(r => {
+             if (r && r.probability !== undefined) {
+                 r.is_clickbait = (r.probability * 100) >= threshold;
+                 if (r.is_clickbait) newDetectedCount++;
+             }
+             
+             // Add to cache
+             if (r && r.headline) {
+               cache[r.headline] = {
+                 result: r,
+                 lastUsed: currentTimestamp
+               };
+             }
+             finalResults.push(r);
+          });
+
+          // Trim cache to 250 items (LRU)
+          const cacheKeys = Object.keys(cache);
+          if (cacheKeys.length > 250) {
+            cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed); // Descending
+            const trimmedCache = {};
+            for (let i = 0; i < 250; i++) {
+              trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
+            }
+            cache = trimmedCache;
+          }
+
+          // Save cache
+          await chrome.storage.local.set({ headlineCache: cache });
+        }
+
+        // Apply threshold override for cached results (they might have been cached with a different threshold originally, but wait - the result object contains original probability. So let's re-evaluate)
+        finalResults.forEach(r => {
+            if (r && r.probability !== undefined) {
+                r.is_clickbait = (r.probability * 100) >= threshold;
+            }
+        });
+
+        // Update stats in storage (only counting newly scanned missing headlines as 'totalScanned'? No, usually totalScanned is cumulative of all items ever seen. Let's just add missingHeadlines.length to totalScanned).
+        const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
+        await chrome.storage.local.set({
+          stats: {
+            totalScanned: currentStats.totalScanned + missingHeadlines.length,
+            clickbaitDetected: currentStats.clickbaitDetected + newDetectedCount
+          }
+        });
+
+        // Re-sort finalResults to match original request order if necessary? Not strictly required by most content scripts, but returning in original order is better.
+        const orderMap = new Map();
+        finalResults.forEach(r => { if (r && r.headline) orderMap.set(r.headline, r); });
+        const orderedResults = headlines.map(hl => orderMap.get(hl)).filter(Boolean);
+
         sendResponse({
           success: true,
-          results: results,
-          data: results,
-          total: results.length
+          results: orderedResults,
+          data: orderedResults,
+          total: orderedResults.length
         });
         return;
       }
@@ -178,21 +241,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        const result = await querySingleHeadline(text, apiUrl, timeoutMs);
-        
-        // Apply threshold override
-        if (result && result.probability !== undefined) {
-           result.is_clickbait = (result.probability * 100) >= threshold;
+        const currentTimestamp = Date.now();
+        let result;
+        let fromCache = false;
+
+        if (cache[text]) {
+          cache[text].lastUsed = currentTimestamp;
+          result = cache[text].result;
+          fromCache = true;
+          // Apply threshold override
+          if (result && result.probability !== undefined) {
+             result.is_clickbait = (result.probability * 100) >= threshold;
+          }
+        } else {
+          result = await querySingleHeadline(text, apiUrl, timeoutMs);
+          if (result && result.probability !== undefined) {
+             result.is_clickbait = (result.probability * 100) >= threshold;
+          }
+          
+          if (result && result.headline) {
+             cache[result.headline] = {
+               result: result,
+               lastUsed: currentTimestamp
+             };
+          } else if (result) {
+             // Fallback if API doesn't return headline field
+             result.headline = text;
+             cache[text] = { result: result, lastUsed: currentTimestamp };
+          }
+
+          // Trim cache
+          const cacheKeys = Object.keys(cache);
+          if (cacheKeys.length > 250) {
+            cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed);
+            const trimmedCache = {};
+            for (let i = 0; i < 250; i++) {
+              trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
+            }
+            cache = trimmedCache;
+          }
+          await chrome.storage.local.set({ headlineCache: cache });
         }
 
         const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
         
-        await chrome.storage.local.set({
-          stats: {
-            totalScanned: currentStats.totalScanned + 1,
-            clickbaitDetected: currentStats.clickbaitDetected + (result && result.is_clickbait ? 1 : 0)
-          }
-        });
+        if (!fromCache) {
+          await chrome.storage.local.set({
+            stats: {
+              totalScanned: currentStats.totalScanned + 1,
+              clickbaitDetected: currentStats.clickbaitDetected + (result && result.is_clickbait ? 1 : 0)
+            }
+          });
+        }
 
         sendResponse({ success: true, data: result });
         return;
