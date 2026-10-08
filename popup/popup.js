@@ -92,3 +92,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initial check
   checkHealth(currentUrl);
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtn = document.getElementById('btn-settings-toggle');
+  const configSec = document.getElementById('config-section');
+  if(toggleBtn && configSec) {
+    toggleBtn.addEventListener('click', () => {
+      if (configSec.style.display === 'none') {
+        configSec.style.display = 'block';
+        toggleBtn.textContent = '⚙️ Ocultar Configurações';
+      } else {
+        configSec.style.display = 'none';
+        toggleBtn.textContent = '⚙️ Configurações Avançadas';
+      }
+    });
+  }
+});
