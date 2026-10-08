@@ -53,7 +53,7 @@
   }
 
   document.addEventListener('mouseover', (e) => {
-    const targetEl = e.target.closest('.clickbait-detected');
+    const targetEl = e.target.closest('.clickbait-detected, .clickbait-image-blurred');
     if (targetEl) {
       const tooltip = getGlobalTooltip();
       const baitType = targetEl.dataset.baitType;
@@ -82,7 +82,7 @@
   });
 
   document.addEventListener('mouseout', (e) => {
-    const targetEl = e.target.closest('.clickbait-detected');
+    const targetEl = e.target.closest('.clickbait-detected, .clickbait-image-blurred');
     if (targetEl) {
       const tooltip = getGlobalTooltip();
       tooltip.style.setProperty('display', 'none', 'important');
@@ -225,6 +225,9 @@
       const found = findMainImage(el);
       if (found && found.img) {
         found.img.classList.add('clickbait-image-blurred');
+        found.img.dataset.baitType = baitType;
+        found.img.dataset.prob = probPercent;
+        found.img.dataset.conf = confPercent;
         if (found.container) {
           found.container.classList.add('clickbait-card');
         }
@@ -367,7 +370,12 @@
       delete e.dataset.prob;
       delete e.dataset.conf;
     });
-    document.querySelectorAll('.clickbait-image-blurred').forEach((e) => e.classList.remove('clickbait-image-blurred'));
+    document.querySelectorAll('.clickbait-image-blurred').forEach((e) => {
+      e.classList.remove('clickbait-image-blurred');
+      delete e.dataset.baitType;
+      delete e.dataset.prob;
+      delete e.dataset.conf;
+    });
     document.querySelectorAll('.clickbait-card').forEach((e) => e.classList.remove('clickbait-card'));
     document.querySelectorAll('[data-clickbait-scanned]').forEach((e) => delete e.dataset.clickbaitScanned);
   }
@@ -468,25 +476,27 @@
   }
 
   document.addEventListener('click', function(e) {
-    const link = e.target.closest('a');
-    if (!link) return;
+    // Click on a clickbait headline or its associated image
+    const clickbaitEl = e.target.closest('.clickbait-detected, .clickbait-image-blurred');
+    if (!clickbaitEl) return;
 
-    // Is the link itself a clickbait or inside a clickbait wrapper?
-    const clickbaitEl = e.target.closest('.clickbait-detected');
-    if (!clickbaitEl) {
-      // Sometimes the badge is next to the link, so check if any parent contains the badge but is not the link itself
-      // Actually, injectBadge adds 'clickbait-detected' to the heading or link itself.
-      // If the link is inside an h2 that has clickbait-detected, it will be caught.
-      // If the link IS the clickbait-detected, it will be caught.
-      return;
+    // Resolve the link to warn about: the clicked link, or the headline link in the card
+    let link = e.target.closest('a');
+    if (!link) {
+      link = clickbaitEl.closest('a');
     }
+    if (!link) {
+      const card = clickbaitEl.closest('.clickbait-card');
+      if (card) link = card.querySelector('a[href]');
+    }
+    if (!link || !link.href) return;
 
     if (link.dataset.clickbaitBypassed === 'true') return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    let archetype = clickbaitEl.dataset.baitType || "Sensacionalismo Geral";
+    const archetype = clickbaitEl.dataset.baitType || "Sensacionalismo Geral";
 
     showWarningModal(link.href, archetype, link);
   }, true); // Use capture phase to intercept before site's own click handlers
