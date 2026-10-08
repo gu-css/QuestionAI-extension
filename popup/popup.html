@@ -17,15 +17,22 @@
     </header>
 
     <main class="popup-body">
-      <div class="stats-card">
+      <div class="stats-grid">
         <div class="stat-item">
           <span class="stat-val" id="stat-scanned">0</span>
           <span class="stat-label">Analisadas</span>
         </div>
-        <div class="stat-divider"></div>
         <div class="stat-item">
           <span class="stat-val alert" id="stat-detected">0</span>
           <span class="stat-label">Clickbaits</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val" id="stat-cached" style="color: #10b981;">0</span>
+          <span class="stat-label">No Cache</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val" id="stat-rate" style="color: #3b82f6;">0%</span>
+          <span class="stat-label">Taxa</span>
         </div>
       </div>
 
@@ -36,39 +43,45 @@
       </div>
 
       
-      <section class="config-section" id="config-section" style="display: none;">
+      <section class="config-section" id="config-section" style="display: none; gap: 16px;">
       
-        <label for="threshold-slider" class="field-label">Sensibilidade de Detecção:</label>
-        <div class="input-group" style="display: flex; align-items: center; gap: 8px;">
-          <input type="range" id="threshold-slider" min="0" max="100" value="75" style="flex: 1; padding: 0; background: transparent; border: none; height: 18px; cursor: pointer;">
-          <span id="threshold-val" style="font-weight: 600; width: 32px; text-align: right; font-size: 11px;">75%</span>
+        <div class="status-indicator" id="status-box" style="border: none; background: var(--color-btn-sec-bg); padding: 8px 12px; border-radius: 6px;">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="status-text">Verificando status...</span>
         </div>
 
-        <label for="api-url" class="field-label" style="margin-top: 4px;">URL da API / Servidor:</label>
-        <div class="input-group">
-          <input type="text" id="api-url" placeholder="https://clickbait-api.onrender.com" spellcheck="false">
+        <div class="config-group">
+          <label for="threshold-slider" class="field-label">Sensibilidade de Detecção:</label>
+          <div class="input-group" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+            <input type="range" id="threshold-slider" min="0" max="100" value="75" style="flex: 1; padding: 0; background: transparent; border: none; height: 18px; cursor: pointer;">
+            <span id="threshold-val" style="font-weight: 700; width: 36px; text-align: right; font-size: 13px; color: var(--color-primary);">75%</span>
+          </div>
         </div>
 
-        <div class="preset-buttons">
-          <button type="button" class="btn-preset" id="preset-local">Local (8000)</button>
-          <button type="button" class="btn-preset" id="preset-hf">Render Nuvem</button>
+        <div class="config-group">
+          <label for="api-url" class="field-label">URL da API / Servidor:</label>
+          <div class="input-group" style="margin-top: 8px; margin-bottom: 8px;">
+            <input type="text" id="api-url" placeholder="https://clickbait-api.onrender.com" spellcheck="false" style="padding: 10px 12px;">
+          </div>
+          <div class="preset-buttons" style="display: flex; gap: 8px;">
+            <button type="button" class="btn-preset" id="preset-local" style="padding: 8px; border-radius: 6px;">Local (8000)</button>
+            <button type="button" class="btn-preset" id="preset-hf" style="padding: 8px; border-radius: 6px;">Render Nuvem</button>
+          </div>
         </div>
 
-        <div class="action-buttons">
-          <button type="button" class="btn-primary" id="btn-save">Salvar Configuração</button>
-          <button type="button" class="btn-secondary" id="btn-test">Testar API</button>
+        <div class="action-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+          <div class="action-buttons" style="display: flex; gap: 8px; margin: 0;">
+            <button type="button" class="btn-primary" id="btn-save" style="flex: 2;">Salvar Configurações</button>
+            <button type="button" class="btn-secondary" id="btn-test" style="flex: 1;">Testar API</button>
+          </div>
+          <button type="button" class="btn-secondary" id="btn-clear-cache" style="width: 100%; border-color: var(--color-secondary); color: var(--color-secondary);">Limpar Cache</button>
         </div>
       </section>
-
-      <div class="status-indicator" id="status-box">
-        <span class="status-dot" id="status-dot"></span>
-        <span class="status-text" id="status-text">Verificando status do servidor...</span>
-      </div>
     </main>
 
     <footer class="popup-footer" style="display: flex; justify-content: space-between; align-items: center;">
       <span>Versão 1.0.0</span>
-      <button type="button" id="btn-settings-toggle" style="background: none; border: none; color: inherit; font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px;" title="Configurações Avançadas">⚙️ Config</button>
+      <button type="button" id="btn-settings-toggle" style="background: none; border: none; color: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 4px;" title="Configurações Avançadas">Configurações</button>
     </footer>
   </div>
 
