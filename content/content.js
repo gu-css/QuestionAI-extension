@@ -97,6 +97,7 @@
 
   let isInjectingBadges = false;
   let debounceTimer = null;
+  let scanFailCount = 0;
 
   // Safe HTML string escaping to prevent XSS
   function escapeHtml(str) {
@@ -256,7 +257,6 @@
       if (isValidCandidate(el)) {
         candidates.push(extractCleanText(el));
         candidateElements.push(el);
-        el.dataset.clickbaitScanned = 'true';
       }
     }
 
@@ -268,8 +268,16 @@
         chrome.runtime.sendMessage(
           { action: 'checkCache', headlines: candidates },
           (cacheResponse) => {
-            if (chrome.runtime.lastError) return;
+            if (chrome.runtime.lastError) {
+              // Service worker may still be waking up — retry instead of giving up.
+              if (scanFailCount < 3) {
+                scanFailCount++;
+                setTimeout(scheduleScan, 1000);
+              }
+              return;
+            }
             if (!cacheResponse || !cacheResponse.success) return;
+            scanFailCount = 0;
 
             // Apply cached badges immediately
             if (cacheResponse.cachedResults && cacheResponse.cachedResults.length > 0) {
@@ -277,10 +285,13 @@
                requestAnimationFrame(() => {
                  try {
                    cacheResponse.cachedResults.forEach(data => {
-                      if (data && data.is_clickbait && data.headline) {
+                      if (data && data.headline) {
                          const idx = candidates.indexOf(data.headline);
                          if (idx !== -1 && candidateElements[idx]) {
-                           injectBadge(candidateElements[idx], data);
+                           candidateElements[idx].dataset.clickbaitScanned = 'true';
+                           if (data.is_clickbait) {
+                             injectBadge(candidateElements[idx], data);
+                           }
                          }
                       }
                    });
@@ -309,8 +320,11 @@
                 requestAnimationFrame(() => {
                   try {
                     response.results.forEach((data, idx) => {
-                      if (data && data.is_clickbait && missingElements[idx]) {
-                        injectBadge(missingElements[idx], data);
+                      if (missingElements[idx]) {
+                        missingElements[idx].dataset.clickbaitScanned = 'true';
+                        if (data && data.is_clickbait) {
+                          injectBadge(missingElements[idx], data);
+                        }
                       }
                     });
                   } finally {
