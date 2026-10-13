@@ -66,13 +66,41 @@ sequenceDiagram
 2. Clique em **"Carregar sem compactação"** e selecione esta pasta.
 3. Fixe a extensão na barra e abra o popup para configurar a API.
 
-## Instalação na Chrome Web Store
+## Como funciona
 
-[![Add to Chrome](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)
+```mermaid
+flowchart TD
+    A["Página do portal\n(h1-h4, article a, seletores G1/UOL/Folha)"] --> B["Content script\nfiltra candidatas\n+18 chars, +3 palavras,\nfora de nav/header/footer"]
+    B --> C{"No cache local?"}
+    C -- Sim --> D["Aplica selo na hora"]
+    C -- Não --> E["Service worker\nPOST /predict_batch\n+ threshold do usuário"]
+    E --> F["API responde\nprobabilidade + tática"]
+    F --> G["Salva no cache LRU 500\ne atualiza estatísticas"]
+    G --> D
+    H["MutationObserver\ndebounce 300ms"] --> B
+```
 
-*Não publicado ainda. Para instalar agora, siga os passos acima.*
+O content script roda em `document_idle` e observa mudanças no DOM (SPA e feed infinito). O service worker age como proxy da API — isso contorna CSP da página e mixed-content — e reaplica o threshold toda vez que a resposta é lida, então mudar o slider reclassifica o cache sem nova consulta. Manchetes repetidas na mesma página (ex. `h1` + link do card) são tratadas por posição, cada ocorrência ganha o selo.
 
-## Configurações (popup)
+## Sequência de uma varredura
+
+```mermaid
+sequenceDiagram
+    participant P as Página
+    participant C as Content script
+    participant S as Service worker
+    participant A as API
+    C->>P: querySelectorAll + filtros
+    C->>S: checkCache (textos)
+    S-->>C: cachedResults + missingHeadlines
+    C->>C: aplica selos do cache
+    C->>S: predictBatch (só faltantes)
+    S->>A: POST /predict_batch
+    A-->>S: results
+    S->>S: threshold + cache + stats
+    S-->>C: orderedResults
+    C->>C: aplica selos novos
+```
 
 | Ajuste | Padrão | Onde fica salvo |
 |--------|--------|-----------------|
