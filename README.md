@@ -1,5 +1,7 @@
 # QuestionAI — Detector de Clickbait
 
+*Idiomas: **Português** · [English](README-en.md)*
+
 <p align="center">
   <img src="popup/logo.svg" alt="QuestionAI — um produto plano b" width="420" />
 </p>
