@@ -11,6 +11,28 @@ const DEFAULT_CONFIG = {
   model: "kmeans" // unsupervised categorizer: "kmeans" | "hdbscan"
 };
 
+// Display filter shared by all actions: the server marks clickbait at
+// prob>=0.5, the extension re-labels with the stricter user threshold
+// (default 75). Always copy before writing so the stored cache is untouched.
+function applyThreshold(result, threshold) {
+  const res = Object.assign({}, result);
+  if (res && res.probability !== undefined) {
+    res.is_clickbait = (res.probability * 100) >= threshold;
+  }
+  return res;
+}
+
+function trimHeadlineCache(cache) {
+  const keys = Object.keys(cache);
+  if (keys.length <= 500) return cache;
+  keys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed); // Descending
+  const trimmed = {};
+  for (let i = 0; i < 500; i++) {
+    trimmed[keys[i]] = cache[keys[i]];
+  }
+  return trimmed;
+}
+
 // 1. Extension lifecycle initialization
 chrome.runtime.onInstalled.addListener(async () => {
   try {
@@ -157,11 +179,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         headlines.forEach(hl => {
           if (cache[hl]) {
             cache[hl].lastUsed = currentTimestamp;
-            let res = Object.assign({}, cache[hl].result);
-            if (res && res.probability !== undefined) {
-               res.is_clickbait = (res.probability * 100) >= threshold;
-            }
-            cachedResults.push(res);
+            cachedResults.push(applyThreshold(cache[hl].result, threshold));
           } else {
             missingHeadlines.push(hl);
           }
@@ -188,11 +206,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const finalResults = [];
         const currentTimestamp = Date.now();
 
-        // Check cache
+        // Check cache (store copies so later threshold changes cannot corrupt it)
         headlines.forEach(hl => {
           if (cache[hl]) {
             cache[hl].lastUsed = currentTimestamp;
-            finalResults.push(cache[hl].result);
+            finalResults.push(applyThreshold(cache[hl].result, threshold));
           } else {
             missingHeadlines.push(hl);
           }
@@ -206,10 +224,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const results = data.results || [];
 
           results.forEach(r => {
-             if (r && r.probability !== undefined) {
-                 r.is_clickbait = (r.probability * 100) >= threshold;
-                 if (r.is_clickbait) newDetectedCount++;
-             }
+             r = applyThreshold(r, threshold);
+             if (r.is_clickbait) newDetectedCount++;
              
              // Add to cache
              if (r && r.headline) {
@@ -222,28 +238,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           });
 
           // Trim cache to 500 items (LRU)
-          const cacheKeys = Object.keys(cache);
-          if (cacheKeys.length > 500) {
-            cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed); // Descending
-            const trimmedCache = {};
-            for (let i = 0; i < 500; i++) {
-              trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
-            }
-            cache = trimmedCache;
-          }
+          cache = trimHeadlineCache(cache);
 
           // Save cache
           await chrome.storage.local.set({ headlineCache: cache });
         }
 
-        // Apply threshold override for cached results (they might have been cached with a different threshold originally, but wait - the result object contains original probability. So let's re-evaluate)
-        finalResults.forEach(r => {
-            if (r && r.probability !== undefined) {
-                r.is_clickbait = (r.probability * 100) >= threshold;
-            }
-        });
-
-        // Update stats in storage (only counting newly scanned missing headlines as 'totalScanned'? No, usually totalScanned is cumulative of all items ever seen. Let's just add missingHeadlines.length to totalScanned).
+        // Stats count only newly scanned headlines, not cache hits.
         const currentStats = settings.stats || { totalScanned: 0, clickbaitDetected: 0 };
         await chrome.storage.local.set({
           stats: {
@@ -280,17 +281,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (cache[text]) {
           cache[text].lastUsed = currentTimestamp;
-          result = cache[text].result;
+          result = applyThreshold(cache[text].result, threshold);
           fromCache = true;
-          // Apply threshold override
-          if (result && result.probability !== undefined) {
-             result.is_clickbait = (result.probability * 100) >= threshold;
-          }
         } else {
-          result = await querySingleHeadline(text, apiUrl, timeoutMs, model);
-          if (result && result.probability !== undefined) {
-             result.is_clickbait = (result.probability * 100) >= threshold;
-          }
+          result = applyThreshold(await querySingleHeadline(text, apiUrl, timeoutMs, model), threshold);
           
           if (result && result.headline) {
              cache[result.headline] = {
@@ -304,15 +298,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           // Trim cache
-          const cacheKeys = Object.keys(cache);
-          if (cacheKeys.length > 500) {
-            cacheKeys.sort((a, b) => cache[b].lastUsed - cache[a].lastUsed);
-            const trimmedCache = {};
-            for (let i = 0; i < 500; i++) {
-              trimmedCache[cacheKeys[i]] = cache[cacheKeys[i]];
-            }
-            cache = trimmedCache;
-          }
+          cache = trimHeadlineCache(cache);
           await chrome.storage.local.set({ headlineCache: cache });
         }
 

@@ -279,20 +279,33 @@
             if (!cacheResponse || !cacheResponse.success) return;
             scanFailCount = 0;
 
-            // Apply cached badges immediately
-            if (cacheResponse.cachedResults && cacheResponse.cachedResults.length > 0) {
+            // Apply cached badges immediately.
+            // Match by position, not indexOf: the same headline text can
+            // appear twice on a page (e.g. h1 + article link).
+            const claimed = new Set();
+            const claimIndex = (hl) => {
+              for (let i = 0; i < candidates.length; i++) {
+                if (!claimed.has(i) && candidates[i] === hl) {
+                  claimed.add(i);
+                  return i;
+                }
+              }
+              return -1;
+            };
+            const cachedTargets = (cacheResponse.cachedResults || []).map(data =>
+              data && data.headline ? claimIndex(data.headline) : -1
+            );
+            if (cachedTargets.some(idx => idx !== -1)) {
                isInjectingBadges = true;
                requestAnimationFrame(() => {
                  try {
-                   cacheResponse.cachedResults.forEach(data => {
-                      if (data && data.headline) {
-                         const idx = candidates.indexOf(data.headline);
-                         if (idx !== -1 && candidateElements[idx]) {
-                           candidateElements[idx].dataset.clickbaitScanned = 'true';
-                           if (data.is_clickbait) {
-                             injectBadge(candidateElements[idx], data);
-                           }
-                         }
+                   cacheResponse.cachedResults.forEach((data, j) => {
+                      const idx = cachedTargets[j];
+                      if (idx !== -1 && candidateElements[idx]) {
+                        candidateElements[idx].dataset.clickbaitScanned = 'true';
+                        if (data && data.is_clickbait) {
+                          injectBadge(candidateElements[idx], data);
+                        }
                       }
                    });
                  } finally {
@@ -305,7 +318,10 @@
             const missing = cacheResponse.missingHeadlines || [];
             if (missing.length === 0) return;
 
-            const missingElements = missing.map(hl => candidateElements[candidates.indexOf(hl)]);
+            const missingElements = missing.map(hl => {
+              const idx = claimIndex(hl);
+              return idx !== -1 ? candidateElements[idx] : null;
+            });
 
             chrome.runtime.sendMessage(
               {
