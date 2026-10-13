@@ -65,6 +65,12 @@ sequenceDiagram
 2. Click **"Load unpacked"** and select this folder.
 3. Pin the extension and open the popup to configure the API.
 
+## Quick install (Chrome Web Store)
+
+[![Add to Chrome](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)
+
+*Not yet published. To install right now, follow the steps above.*
+
 ## Settings (popup)
 
 | Setting | Default | Stored in |

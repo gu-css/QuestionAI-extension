@@ -66,6 +66,12 @@ sequenceDiagram
 2. Clique em **"Carregar sem compactação"** e selecione esta pasta.
 3. Fixe a extensão na barra e abra o popup para configurar a API.
 
+## Instalação na Chrome Web Store
+
+[![Add to Chrome](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)](https://chrome.google.com/webstore/detail/questionai-clickbait-detector/placeholder-id)
+
+*Não publicado ainda. Para instalar agora, siga os passos acima.*
+
 ## Configurações (popup)
 
 | Ajuste | Padrão | Onde fica salvo |
